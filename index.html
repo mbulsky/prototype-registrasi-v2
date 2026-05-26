@@ -1,0 +1,2230 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Flow C — Save & Resume (Revised) · Privy Enterprise</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #F8F7F3; }
+
+/* ── Top nav ── */
+.top-nav {
+  display: flex; align-items: center; background: #1F3864;
+  padding: 0; height: 48px; position: sticky; top: 0; z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+}
+.top-brand {
+  padding: 0 20px; color: white; font-size: 13px; font-weight: 700;
+  border-right: 1px solid rgba(255,255,255,0.15); height: 48px;
+  display: flex; align-items: center; gap: 6px; white-space: nowrap;
+}
+.top-brand .accent { color: #E24B4A; }
+.top-brand .sep { color: rgba(255,255,255,0.3); }
+.nav-tabs { display: flex; height: 48px; }
+.nav-tab {
+  padding: 0 22px; color: rgba(255,255,255,0.65); font-size: 12px;
+  font-weight: 500; cursor: pointer; border: none; background: none;
+  height: 48px; border-bottom: 3px solid transparent; transition: all 0.15s;
+  font-family: inherit; white-space: nowrap;
+}
+.nav-tab:hover { color: white; background: rgba(255,255,255,0.07); }
+.nav-tab.active { color: white; border-bottom-color: #E24B4A; background: rgba(255,255,255,0.08); }
+.badge {
+  margin-left: 6px; background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.8);
+  font-size: 9px; padding: 1px 6px; border-radius: 8px; font-weight: 600;
+}
+.nav-tab.active .badge { background: #E24B4A; color: white; }
+
+/* ── Sections ── */
+.section { display: none; }
+.section.active { display: block; }
+
+/* ── Flowchart section ── */
+#fc-section {
+  padding: 24px; min-height: calc(100vh - 48px);
+  background: #F8F7F3;
+}
+.fc-header {
+  max-width: 1000px; margin: 0 auto 16px;
+}
+.fc-header h2 { font-size: 18px; font-weight: 700; color: #1F3864; margin-bottom: 4px; }
+.fc-header p { font-size: 12px; color: #888; }
+.fc-changes {
+  max-width: 1000px; margin: 0 auto 16px;
+  background: white; border-radius: 10px; border: 1.5px solid #5DCAA5;
+  padding: 14px 18px;
+}
+.fc-changes h3 { font-size: 12px; font-weight: 700; color: #085041; margin-bottom: 8px; }
+.fc-changes ul { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
+.fc-changes li {
+  font-size: 11px; background: #E1F5EE; color: #085041;
+  border: 1px solid #5DCAA5; border-radius: 6px; padding: 3px 10px;
+}
+.fc-img-wrap {
+  max-width: 1000px; margin: 0 auto;
+  background: white; border-radius: 12px; border: 1px solid #eee;
+  padding: 12px; overflow-x: auto;
+}
+.fc-img-wrap img { width: 100%; display: block; }
+
+/* ── Prototype section ── */
+#pt-section {
+  height: calc(100vh - 48px); overflow: hidden;
+}
+#pt-section iframe {
+  width: 100%; height: 100%; border: none; display: block;
+}
+
+
+:root {
+  --bg: #F5F4EF;
+  --surface: #FFFFFF;
+  --border: #E2E0D9;
+  --border2: #C8C5BB;
+  --text: #1A1917;
+  --text2: #6B6860;
+  --text3: #9B9890;
+  --accent: #E42E2C;
+  --accent-light: #FEF0F0;
+  --blue: #1D4ED8;
+  --blue-light: #EFF6FF;
+  --green: #15803D;
+  --green-light: #F0FDF4;
+  --amber: #B45309;
+  --amber-light: #FFFBEB;
+  --purple: #6D28D9;
+  --purple-light: #F5F3FF;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Mono', 'Courier New', monospace; background: var(--bg); color: var(--text); min-height: 100vh; }
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@400;500;600;700&display=swap');
+body { font-family: 'DM Sans', system-ui, sans-serif; }
+.mono { font-family: 'DM Mono', monospace; }
+
+/* ── Layout ── */
+.app { display: flex; height: 100vh; overflow: hidden; }
+
+/* ── Left sidebar ── */
+.sidebar {
+  width: 220px; flex-shrink: 0; background: var(--surface);
+  border-right: 1px solid var(--border); padding: 16px 0;
+  display: flex; flex-direction: column; overflow-y: auto;
+}
+.sidebar-logo { padding: 0 16px 16px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+.sidebar-logo .privy { font-size: 18px; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+.sidebar-logo .label { font-size: 10px; color: var(--text3); margin-top: 1px; font-family: 'DM Mono', monospace; }
+
+.sidebar-section { padding: 0 8px; margin-bottom: 4px; }
+.sidebar-section-label { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.6px; padding: 6px 8px 4px; font-family: 'DM Mono', monospace; }
+.opt-btn {
+  width: 100%; text-align: left; padding: 8px 10px; border-radius: var(--radius);
+  border: none; cursor: pointer; font-size: 12px; font-weight: 500; color: var(--text2);
+  background: none; display: flex; align-items: center; gap: 8px; transition: all 0.15s;
+}
+.opt-btn:hover { background: var(--bg); color: var(--text); }
+.opt-btn.active { background: var(--accent); color: white; }
+.opt-btn .opt-tag {
+  font-size: 9px; font-weight: 600; padding: 1px 5px; border-radius: 4px;
+  background: rgba(255,255,255,0.25); font-family: 'DM Mono', monospace;
+}
+.opt-btn:not(.active) .opt-tag { background: var(--border); color: var(--text3); }
+
+/* ── Main area ── */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* ── Top bar ── */
+.topbar {
+  padding: 12px 20px; background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.topbar-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.topbar-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+.breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text3); }
+.breadcrumb span { color: var(--text); font-weight: 500; }
+.back-btn {
+  padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border2);
+  background: white; font-size: 11px; font-weight: 500; cursor: pointer;
+  color: var(--text2); transition: all 0.15s;
+}
+.back-btn:hover { background: var(--bg); }
+
+/* ── Device frame ── */
+.device-wrap { flex: 1; overflow-y: auto; padding: 24px; display: flex; justify-content: center; align-items: flex-start; gap: 24px; }
+.device {
+  width: 390px; min-height: 600px; background: white;
+  border: 2px solid #1A1917; border-radius: 16px;
+  box-shadow: 4px 4px 0 #1A1917; overflow: hidden;
+  display: flex; flex-direction: column; flex-shrink: 0;
+}
+.device-header {
+  background: white; border-bottom: 1px solid var(--border);
+  padding: 12px 16px 10px; flex-shrink: 0;
+}
+.device-logo { font-size: 16px; font-weight: 700; color: var(--accent); }
+.device-step { font-size: 10px; color: var(--text3); margin-top: 3px; font-family: 'DM Mono', monospace; }
+.device-body { padding: 16px; overflow-y: auto; flex: 1; }
+
+/* ── Progress bar ── */
+.progress-bar { height: 3px; background: var(--border); border-radius: 2px; margin-bottom: 16px; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
+.step-indicator { display: flex; gap: 6px; margin-bottom: 16px; }
+.step-dot {
+  height: 4px; flex: 1; border-radius: 2px; background: var(--border);
+}
+.step-dot.done { background: var(--accent); }
+.step-dot.active { background: var(--accent); opacity: 0.4; }
+
+/* ── Wireframe components ── */
+.wf-title { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 4px; line-height: 1.3; }
+.wf-sub { font-size: 13px; color: var(--text2); margin-bottom: 16px; line-height: 1.5; }
+.wf-section-label { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-family: 'DM Mono', monospace; }
+.wf-field { margin-bottom: 12px; }
+.wf-field label { display: block; font-size: 11px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.wf-field label .req { color: var(--accent); }
+.wf-input {
+  width: 100%; padding: 8px 10px; border: 1.5px solid var(--border2);
+  border-radius: var(--radius); font-size: 13px; color: var(--text3);
+  background: var(--bg); font-family: inherit;
+}
+.wf-input.filled { background: white; border-color: var(--border2); color: var(--text); }
+.wf-select {
+  width: 100%; padding: 8px 10px; border: 1.5px solid var(--border2);
+  border-radius: var(--radius); font-size: 13px; color: var(--text3);
+  background: var(--bg); appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%23999' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
+}
+.wf-upload {
+  border: 1.5px dashed var(--border2); border-radius: var(--radius);
+  padding: 12px; text-align: center; font-size: 12px; color: var(--text3);
+  background: var(--bg); cursor: pointer;
+}
+.wf-upload.done { border-color: var(--green); background: var(--green-light); color: var(--green); border-style: solid; }
+.wf-upload.error { border-color: var(--accent); background: var(--accent-light); color: var(--accent); border-style: solid; }
+.wf-checkbox { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--text2); margin-bottom: 12px; cursor: pointer; }
+.wf-checkbox input { margin-top: 2px; accent-color: var(--accent); width: 14px; height: 14px; flex-shrink: 0; }
+
+/* ── Buttons ── */
+.btn-primary {
+  width: 100%; padding: 11px; border-radius: var(--radius);
+  background: var(--accent); color: white; border: none;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: all 0.15s; font-family: inherit;
+}
+.btn-primary:hover { background: #c42220; transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.btn-primary:disabled { background: var(--border2); color: white; cursor: not-allowed; transform: none; }
+.btn-secondary {
+  width: 100%; padding: 10px; border-radius: var(--radius);
+  background: white; color: var(--text); border: 1.5px solid var(--border2);
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: all 0.15s; margin-top: 8px; font-family: inherit;
+}
+.btn-secondary:hover { background: var(--bg); }
+.btn-ghost {
+  background: none; border: none; font-size: 12px; color: var(--blue);
+  cursor: pointer; padding: 0; font-family: inherit; text-decoration: underline;
+}
+
+/* ── Alerts & banners ── */
+.alert { border-radius: var(--radius); padding: 10px 12px; font-size: 12px; line-height: 1.5; margin-bottom: 12px; display: flex; gap: 8px; align-items: flex-start; }
+.alert.info { background: var(--blue-light); color: #1e40af; border: 1px solid #bfdbfe; }
+.alert.success { background: var(--green-light); color: var(--green); border: 1px solid #bbf7d0; }
+.alert.warning { background: var(--amber-light); color: var(--amber); border: 1px solid #fde68a; }
+.alert.danger { background: var(--accent-light); color: #991b1b; border: 1px solid #fecaca; }
+.alert.purple { background: var(--purple-light); color: var(--purple); border: 1px solid #ddd6fe; }
+.alert .alert-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+/* ── Tags ── */
+.tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 600; font-family: 'DM Mono', monospace; }
+.tag.new { background: var(--green-light); color: var(--green); border: 1px solid #bbf7d0; }
+.tag.locked { background: var(--amber-light); color: var(--amber); border: 1px solid #fde68a; }
+.tag.pending { background: var(--blue-light); color: var(--blue); border: 1px solid #bfdbfe; }
+.tag.verified { background: var(--green-light); color: var(--green); border: 1px solid #bbf7d0; }
+
+/* ── Checklist ── */
+.checklist-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.checklist-item:last-child { border-bottom: none; }
+.checklist-icon { width: 28px; height: 28px; border-radius: 6px; background: var(--bg); border: 1.5px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.checklist-text { flex: 1; }
+.checklist-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.checklist-desc { font-size: 11px; color: var(--text3); margin-top: 1px; }
+
+/* ── Card ── */
+.card { border: 1.5px solid var(--border); border-radius: var(--radius-lg); padding: 14px; margin-bottom: 12px; background: white; }
+.card-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.card-sub { font-size: 11px; color: var(--text2); line-height: 1.5; }
+
+/* ── Timer bar (Opsi E) ── */
+.timer-bar-wrap { background: var(--amber-light); border: 1.5px solid #fde68a; border-radius: var(--radius); padding: 10px 12px; margin-bottom: 12px; }
+.timer-title { font-size: 12px; font-weight: 600; color: var(--amber); margin-bottom: 6px; display: flex; justify-content: space-between; }
+.timer-track { height: 6px; background: #fde68a; border-radius: 3px; }
+.timer-fill { height: 6px; background: var(--amber); border-radius: 3px; }
+
+/* ── Read-only mode overlay (Opsi E) ── */
+.readonly-chip {
+  display: inline-flex; align-items: center; gap: 4px; background: var(--amber-light);
+  border: 1px solid #fde68a; border-radius: 4px; padding: 2px 7px;
+  font-size: 10px; font-weight: 600; color: var(--amber); font-family: 'DM Mono', monospace;
+}
+.feature-locked {
+  border: 1.5px solid var(--border); border-radius: var(--radius); padding: 10px 12px;
+  margin-bottom: 8px; opacity: 0.5; position: relative; overflow: hidden;
+}
+.feature-locked::after {
+  content: '🔒';
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  font-size: 14px;
+}
+.feature-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.feature-sub { font-size: 11px; color: var(--text3); }
+
+/* ── Popup overlay ── */
+.popup-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; padding: 20px;
+}
+.popup-box {
+  background: white; border-radius: var(--radius-lg); padding: 20px;
+  width: 320px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  border: 2px solid var(--text);
+}
+.popup-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.popup-sub { font-size: 12px; color: var(--text2); margin-bottom: 16px; line-height: 1.5; }
+.popup-options { display: flex; flex-direction: column; gap: 8px; }
+.popup-opt {
+  border: 1.5px solid var(--border2); border-radius: var(--radius);
+  padding: 10px 12px; cursor: pointer; transition: all 0.15s;
+}
+.popup-opt:hover { border-color: var(--accent); background: var(--accent-light); }
+.popup-opt .popt-label { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+.popup-opt .popt-sub { font-size: 11px; color: var(--text3); }
+
+/* ── Success screen ── */
+.success-icon { width: 56px; height: 56px; border-radius: 50%; background: var(--green-light); border: 2px solid var(--green); display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 12px; }
+.success-title { font-size: 18px; font-weight: 700; text-align: center; margin-bottom: 6px; }
+.success-sub { font-size: 13px; color: var(--text2); text-align: center; margin-bottom: 16px; line-height: 1.5; }
+.timeline-item { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
+.timeline-dot { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; margin-top: 1px; }
+.timeline-dot.done { background: var(--green); border-color: var(--green); color: white; }
+.timeline-dot.active { background: var(--accent); border-color: var(--accent); color: white; }
+.timeline-text { font-size: 12px; color: var(--text2); line-height: 1.5; }
+.timeline-text strong { color: var(--text); }
+
+/* ── Soft reject ── */
+.doc-status-row { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.doc-status-row:last-child { border-bottom: none; }
+.doc-status-icon { width: 24px; height: 24px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+.doc-ok { background: var(--green-light); }
+.doc-err { background: var(--accent-light); }
+.doc-name { font-size: 12px; font-weight: 600; color: var(--text); }
+.doc-reason { font-size: 11px; color: var(--accent); margin-top: 1px; }
+.doc-ok-text { font-size: 11px; color: var(--green); }
+.reupload-btn { display: inline-block; font-size: 10px; border: 1px dashed var(--amber); color: var(--amber); border-radius: 4px; padding: 2px 7px; margin-top: 4px; cursor: pointer; }
+
+/* ── ID chip ── */
+.id-chip { background: var(--bg); border: 1px solid var(--border2); border-radius: 6px; padding: 6px 10px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text2); display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+
+/* ── Notes panel ── */
+.notes-panel {
+  width: 260px; flex-shrink: 0; background: #FEFCE8;
+  border-left: 1px solid #fde68a; padding: 16px;
+  overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
+}
+.note-card { background: white; border-radius: var(--radius); padding: 10px 12px; border: 1px solid #fde68a; }
+.note-label { font-size: 9px; font-weight: 600; color: var(--amber); text-transform: uppercase; letter-spacing: 0.5px; font-family: 'DM Mono', monospace; margin-bottom: 5px; }
+.note-text { font-size: 11px; color: #78350f; line-height: 1.6; }
+.note-tag { display: inline-block; background: var(--amber-light); border: 1px solid #fde68a; border-radius: 4px; padding: 1px 6px; font-size: 9px; font-weight: 600; color: var(--amber); font-family: 'DM Mono', monospace; margin-right: 3px; margin-top: 4px; }
+
+/* ── Divider ── */
+.divider { height: 1px; background: var(--border); margin: 12px 0; }
+.spacer { height: 12px; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'base',
+  themeVariables: {
+    primaryColor: '#EFF6FF',
+    primaryTextColor: '#1E3A5F',
+    primaryBorderColor: '#BFDBFE',
+    lineColor: '#6B7280',
+    fontSize: '13px'
+  },
+  flowchart: { rankSpacing: 55, nodeSpacing: 30, curve: 'basis', htmlLabels: true }
+});
+</script>
+</head>
+<body>
+
+<!-- ── Login Gate ── -->
+<div id="login-overlay" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#1F3864;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif">
+  <div style="background:#fff;border-radius:16px;padding:40px 36px;width:100%;max-width:360px;box-shadow:0 24px 64px rgba(0,0,0,0.45);text-align:center">
+    <div style="font-size:26px;font-weight:800;color:#E42E2C;letter-spacing:-0.5px;margin-bottom:3px">privy</div>
+    <div style="font-size:10.5px;color:#9CA3AF;margin-bottom:28px;font-family:'DM Mono','Courier New',monospace;letter-spacing:.5px">enterprise · flow review</div>
+    <div style="width:56px;height:56px;background:#FEF2F2;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:22px">🔐</div>
+    <div style="font-size:17px;font-weight:700;color:#111827;margin-bottom:6px">Akses Terbatas</div>
+    <div style="font-size:13px;color:#6B7280;margin-bottom:24px;line-height:1.55">Masukkan passcode untuk melihat<br>flowchart dan prototype interaktif</div>
+    <input id="pc-input" type="password" maxlength="6" autocomplete="off"
+      style="width:100%;height:50px;border:2px solid #E5E7EB;border-radius:8px;text-align:center;font-size:22px;letter-spacing:8px;font-family:'DM Mono','Courier New',monospace;outline:none;color:#111827;transition:border-color .15s,box-shadow .15s;background:#F9FAFB"
+      placeholder="······"
+      onfocus="this.style.borderColor='#E42E2C';this.style.boxShadow='0 0 0 3px rgba(228,46,44,.12)'"
+      onblur="this.style.borderColor='#E5E7EB';this.style.boxShadow='none'"
+      oninput="document.getElementById('pc-err').style.opacity='0'"
+      onkeydown="if(event.key==='Enter')doLogin()">
+    <div id="pc-err" style="opacity:0;color:#E42E2C;font-size:12px;margin-top:8px;transition:opacity .2s;height:18px">Passcode salah. Coba lagi.</div>
+    <button onclick="doLogin()"
+      style="width:100%;height:46px;background:#E42E2C;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-top:10px;letter-spacing:.3px;font-family:inherit;transition:background .15s"
+      onmouseover="this.style.background='#C42020'"
+      onmouseout="this.style.background='#E42E2C'">Buka →</button>
+    <div style="font-size:11px;color:#D1D5DB;margin-top:18px">© Privy · Internal Use Only</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  if(sessionStorage.getItem('fc_auth')==='ok'){
+    document.getElementById('login-overlay').style.display='none';
+  }
+})();
+
+function doLogin(){
+  var v=document.getElementById('pc-input').value.toUpperCase();
+  if(v==='WM0905'){
+    sessionStorage.setItem('fc_auth','ok');
+    var ov=document.getElementById('login-overlay');
+    ov.style.transition='opacity .35s';
+    ov.style.opacity='0';
+    setTimeout(function(){ov.style.display='none';},360);
+  } else {
+    var err=document.getElementById('pc-err');
+    err.style.opacity='1';
+    var inp=document.getElementById('pc-input');
+    inp.value='';
+    inp.style.borderColor='#E42E2C';
+    inp.style.boxShadow='0 0 0 3px rgba(228,46,44,.18)';
+    inp.focus();
+    setTimeout(function(){inp.style.borderColor='#E5E7EB';inp.style.boxShadow='none';},1800);
+  }
+}
+</script>
+
+<nav class="top-nav">
+  <div class="top-brand">
+    <span class="accent">privy</span>
+    <span class="sep">|</span>
+    Flow C Revised
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('fc',this)">
+      Flowchart <span class="badge">Updated</span>
+    </button>
+    <button class="nav-tab" onclick="switchTab('pt',this)">
+      Prototype Interaktif <span class="badge">Clickable</span>
+    </button>
+  </div>
+</nav>
+
+<!-- FLOWCHART -->
+<div id="fc-section" class="section active">
+  <div class="fc-header">
+    <h2>Flow C — Registrasi Enterprise Privy (Latest)</h2>
+    <p>Diagram alur sesuai prototype interaktif terbaru. Diperbarui berdasarkan seluruh sesi revisi.</p>
+  </div>
+  <div class="fc-changes">
+    <h3>✓ Perubahan dari versi awal:</h3>
+    <ul>
+      <li>✅ TnC dipindah → Step 1</li>
+      <li>🗑️ Company size dihapus</li>
+      <li>🪪 PrivyID masuk → Step 2</li>
+      <li>📄 OCR NPWP inline setelah field Telepon</li>
+      <li>⌨️ PIN input via keyboard (no dialpad)</li>
+      <li>🪟 Auth modal → bottom sheet + blur backdrop</li>
+      <li>⏳ Pending screen diperbarui (ID registrasi + 4-step progress)</li>
+      <li>⚠️ Soft reject → 2 kartu terpisah (alasan + upload fokus)</li>
+      <li>🚫 Hard reject → 3 alasan spesifik + tombol "Daftar Ulang"</li>
+      <li>🎉 Enterprise aktif → action list + CTA merah sesuai index.html</li>
+    </ul>
+  </div>
+  <div class="fc-img-wrap" style="padding:24px;overflow-x:auto">
+    <div class="mermaid" style="min-width:700px">
+flowchart TD
+    LOGIN(["🔐&nbsp;Login
+Passcode: WM0905"])
+
+    S1["<b>Step 1 — Informasi Dasar</b>
+Nama · Email · HP
+Nama Perusahaan · Sektor Bisnis
+☑ Setuju Syarat &amp; Ketentuan"]
+
+    S2["<b>Step 2 — Data Perusahaan</b>
+─────────────────────────
+🪪&nbsp; A: Verifikasi PrivyID
+📋&nbsp; B: Jabatan · Email Perusahaan
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Telepon · Alamat · NPWP · NIB
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ OCR Upload NPWP (opsional)
+📁&nbsp; C: Upload Dokumen
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NPWP · Akta · SK · NIB
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ Surat Kuasa (jika bukan direktur)"]
+
+    SAVE["💾&nbsp;Simpan &amp; Lanjutkan Nanti
+(kirim link ke email)"]
+    EMAILSENT["📧&nbsp;Email Terkirim
+Link berlaku 7 hari
+→ Lanjutkan kapan saja"]
+
+    S3["<b>Step 3 — Review &amp; Tanda Tangan</b>
+─────────────────────────
+📋&nbsp;Ringkasan data
+📄&nbsp;Preview dokumen
+✍️&nbsp;Taruh tanda tangan
+🔒&nbsp;Auth Modal: PIN / OTP / WA / SMS
+⌨️&nbsp;PIN Modal: 6-digit via keyboard
+✅&nbsp;Dokumen ditandatangani"]
+
+    SUBMIT["📤&nbsp;Submit Permohonan"]
+
+    PENDING["⏳&nbsp;<b>Permohonan Sedang Diproses</b>
+ID Registrasi + tombol salin
+4-step progress tracker
+Notifikasi via email"]
+
+    SOFT["⚠️&nbsp;<b>Soft Reject</b>
+Kartu 1: Alasan penolakan
+(NPWP + Akta — detail per item)
+Kartu 2: Upload ulang
+hanya file yang ditolak"]
+
+    HARD["🚫&nbsp;<b>Hard Reject</b>
+3 alasan final spesifik
+(NIK/Dukcapil · OSS/NIB · Akta)
+Keputusan bersifat final"]
+
+    OK["🎉&nbsp;<b>Enterprise Aktif</b>
+Undang karyawan
+Buat dokumen pertama
+Atur enterprise seal
+→ Mulai gunakan Privy Enterprise"]
+
+    LOGIN --> S1
+    S1 --"Selanjutnya"--> S2
+    S2 --"Simpan &amp; Lanjutkan Nanti"--> SAVE --> EMAILSENT
+    S2 --"Simpan &amp; Lanjutkan"--> S3
+    S3 --"Submit
+(setelah ditandatangani)"--> SUBMIT --> PENDING
+    PENDING --"Soft Reject"--> SOFT
+    SOFT --"Kirim Ulang
+Permohonan"--> PENDING
+    PENDING --"Hard Reject"--> HARD
+    HARD --"Daftar Ulang"--> S1
+    PENDING --"Disetujui"--> OK
+
+    classDef login fill:#1F3864,color:#fff,stroke:#1F3864
+    classDef step fill:#EFF6FF,color:#1E3A5F,stroke:#93C5FD,text-align:left
+    classDef save fill:#F9FAFB,color:#374151,stroke:#D1D5DB
+    classDef submit fill:#FFFBEB,color:#B45309,stroke:#FDE68A
+    classDef pending fill:#DBEAFE,color:#1E3A5F,stroke:#3B82F6
+    classDef soft fill:#FFFBEB,color:#92400E,stroke:#F59E0B
+    classDef hard fill:#FEF2F2,color:#991B1B,stroke:#F87171
+    classDef success fill:#ECFDF5,color:#065F46,stroke:#34D399
+
+    class LOGIN login
+    class S1,S2,S3 step
+    class SAVE,EMAILSENT save
+    class SUBMIT submit
+    class PENDING pending
+    class SOFT soft
+    class HARD hard
+    class OK success
+    </div>
+  </div>
+</div>
+
+<!-- PROTOTYPE -->
+<div id="pt-section" class="section">
+  <iframe id="pt-iframe" srcdoc="" frameborder="0"></iframe>
+</div>
+
+<script>
+function switchTab(id, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id + '-section').classList.add('active');
+  el.classList.add('active');
+  if (id === 'pt') initPrototype();
+}
+
+function initPrototype() {
+  var iframe = document.getElementById('pt-iframe');
+  if (iframe.dataset.loaded) return;
+  iframe.dataset.loaded = '1';
+
+  var srcdoc = document.getElementById('pt-srcdoc').textContent;
+  srcdoc = srcdoc.replace('<\\/script>', '<' + '/script>');
+  iframe.srcdoc = srcdoc;
+}
+</script>
+
+<!-- Prototype srcdoc template (stored as text, loaded on demand) -->
+<script id="pt-srcdoc" type="text/plain">
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Privy Enterprise Registration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.33.0/tabler-icons.min.css" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',-apple-system,sans-serif;background:#EEF0F4;min-height:100vh;color:#111827}
+
+/* Header */
+.hdr{position:sticky;top:0;z-index:200;background:#fff;border-bottom:1px solid #E5E7EB;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.hdr-bar{max-width:576px;margin:0 auto;display:flex;align-items:center;height:56px;padding:0 24px;gap:16px}
+.hdr-logo{height:26px;display:block}
+.hdr-spacer{flex:1}
+.lang-tog{display:flex;background:#F4F6F8;border:1px solid #E5E7EB;border-radius:8px;padding:3px;gap:2px}
+.ltbtn{height:28px;padding:0 14px;border-radius:6px;border:none;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;background:transparent;color:#6B7280}
+.ltbtn.on{background:#fff;color:#111827;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+
+/* Step bar */
+.step-bar{border-top:1px solid #F3F4F6}
+.step-bar-inner{max-width:576px;margin:0 auto;display:flex;align-items:center;padding:12px 24px}
+.si{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.sc{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;transition:all .2s}
+.sc.done{background:#059669;color:#fff}
+.sc.act{background:#E42E2C;color:#fff}
+.sc.idle{background:#F4F6F8;color:#9CA3AF;border:1.5px solid #D1D5DB}
+.sn{font-size:11.5px;font-weight:500;color:#9CA3AF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sn.act{color:#E42E2C;font-weight:600}
+.sn.done{color:#059669}
+.sline{flex:1;height:2px;background:#E5E7EB;margin:0 8px}
+.sline.done{background:#059669}
+.prog{height:3px;background:#F3F4F6;overflow:hidden}
+.prog-fill{height:100%;background:#E42E2C;transition:width .4s ease}
+
+/* Main */
+main{max-width:576px;margin:0 auto;padding:24px 24px 100px}
+
+/* Card */
+.card{background:#fff;border:1px solid #E5E7EB;border-radius:6px;margin-bottom:16px;overflow:hidden}
+.ch{display:flex;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid #F3F4F6}
+.ch-ico{width:34px;height:34px;border-radius:9px;background:#FEF2F2;display:flex;align-items:center;justify-content:center;font-size:17px;color:#E42E2C;flex-shrink:0}
+.ch-ico.blue{background:#EFF6FF;color:#1D4ED8}
+.ch-ico.green{background:#ECFDF5;color:#059669}
+.ch-ico.gray{background:#F4F6F8;color:#6B7280}
+.ch-ico.warn{background:#FFFBEB;color:#D97706}
+.ch-t{font-size:13px;font-weight:600;color:#111827}
+.ch-sub{font-size:11px;color:#9CA3AF;margin-top:1px}
+.cb{padding:16px 20px}
+.cb-sm{padding:12px 20px}
+
+/* Badges */
+.bdr{font-size:10.5px;font-weight:500;padding:2px 9px;border-radius:10px}
+.bdr-red{background:#FEF2F2;color:#E42E2C}
+.bdr-gray{background:#F4F6F8;color:#6B7280}
+.bdr-green{background:#ECFDF5;color:#059669}
+.bdr-warn{background:#FFFBEB;color:#D97706}
+
+/* Fields */
+.fld{margin-bottom:12px}
+.fld:last-child{margin-bottom:0}
+.fl{display:block;font-size:12px;font-weight:500;color:#4B5563;margin-bottom:5px}
+.fl-req{color:#E42E2C;margin-left:1px}
+.fi-w{position:relative}
+.fi{width:100%;height:36px;padding:0 12px;border:1.5px solid #D1D5DB;border-radius:4px;font-family:inherit;font-size:13.5px;color:#111827;background:#fff;outline:none;transition:border-color .15s,box-shadow .15s;-webkit-appearance:none}
+.fi:focus{border-color:#008AFF;box-shadow:0 0 0 3px rgba(0,138,255,.12)}
+.fi::placeholder{color:#9CA3AF}
+.fi.ok{background:#F9FAFB;border-color:#BEEDCA}
+.fi.err{border-color:#E42E2C;background:#FFF8F8}
+.fi.err:focus{box-shadow:0 0 0 3px rgba(228,46,44,.12)}
+.fi.dis{background:#F4F6F8;border-color:#E5E7EB;color:#6B7280;cursor:not-allowed}
+.fi-ico{position:absolute;right:11px;top:50%;transform:translateY(-50%);color:#9CA3AF;font-size:16px;pointer-events:none}
+.fi.ico-p{padding-right:36px}
+select.fi{-webkit-appearance:none}
+.fhint{font-size:11.5px;color:#6B7280;margin-top:4px;line-height:1.4}
+.ferr{font-size:11.5px;color:#E42E2C;margin-top:4px;display:flex;align-items:center;gap:4px}
+
+/* Verify inline */
+.fi-verify-row{display:flex;gap:8px;align-items:flex-start}
+.fi-verify-row .fi-w{flex:1}
+.verified-badge{display:inline-flex;align-items:center;gap:4px;color:#059669;font-size:12px;font-weight:500;margin-top:6px}
+
+/* PrivyID verified card */
+.privy-card{background:#F0FDF4;border:1px solid #A7F3D0;border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;margin-top:10px}
+.privy-av{width:38px;height:38px;border-radius:50%;background:#E42E2C;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.privy-info{flex:1}
+.privy-name{font-size:13px;font-weight:600;color:#111827}
+.privy-sub{font-size:11.5px;color:#6B7280;margin-top:1px}
+.privy-vbadge{color:#059669;font-size:12px;font-weight:600;display:flex;align-items:center;gap:3px;white-space:nowrap}
+.privy-change{font-size:12px;color:#008AFF;cursor:pointer;text-decoration:underline;margin-top:6px;display:inline-block}
+
+/* Director question */
+.dir-q{background:#F9FAFB;border:1.5px solid #E5E7EB;border-radius:10px;padding:14px;margin-top:4px}
+.dir-q-t{font-size:13px;font-weight:600;color:#111827;margin-bottom:3px}
+.dir-q-s{font-size:12px;color:#6B7280;margin-bottom:12px;line-height:1.4}
+.dir-opts{display:flex;gap:8px}
+.dir-opt{flex:1;padding:9px 12px;border:1.5px solid #E5E7EB;border-radius:8px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:#374151;background:#fff}
+.dir-opt.sel{border-color:#E42E2C;background:#FEF2F2;color:#E42E2C}
+.dir-rb{width:16px;height:16px;border-radius:50%;border:2px solid #D1D5DB;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.dir-opt.sel .dir-rb{border-color:#E42E2C}
+.dir-rb-dot{width:7px;height:7px;border-radius:50%;background:#E42E2C;display:none}
+.dir-opt.sel .dir-rb-dot{display:block}
+
+/* Kuasa section */
+.kuasa{background:#FFFBEB;border:1.5px dashed #FCD34D;border-radius:10px;padding:14px;margin-top:12px}
+.kuasa-t{font-size:13px;font-weight:600;color:#92400E;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.kuasa-s{font-size:12px;color:#92400E;opacity:.8;margin-bottom:12px}
+
+/* Upload areas */
+.up-area{border:1.5px dashed #D1D5DB;border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:all .15s;background:#fff}
+.up-area:hover{border-color:#9CA3AF;background:#F9FAFB}
+.up-area.done{border-color:#A7F3D0;background:#F0FDF4;border-style:solid}
+.up-ico{font-size:26px;color:#9CA3AF;margin-bottom:6px}
+.up-ico.done{color:#059669}
+.up-txt{font-size:12.5px;color:#6B7280}
+.up-fname{font-size:12.5px;font-weight:500;color:#059669;margin-top:4px}
+
+/* Alert */
+.al{border-radius:10px;padding:12px 14px;display:flex;gap:10px;margin-bottom:14px;border:1px solid;font-size:12.5px;line-height:1.5}
+.al:last-child{margin-bottom:0}
+.al-i{font-size:15px;flex-shrink:0;margin-top:1px}
+.al-info{background:#EFF6FF;border-color:#BFDBFE;color:#1D4ED8}
+.al-ok{background:#ECFDF5;border-color:#A7F3D0;color:#065F46}
+.al-warn{background:#FFFBEB;border-color:#FDE68A;color:#92400E}
+.al-err{background:#FEF2F2;border-color:#FECACA;color:#991B1B}
+
+/* Doc checklist */
+.dci{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:6px;margin-bottom:6px}
+.dci:last-child{margin-bottom:0}
+.dci.ok-bg{background:#ECFDF5}
+.dci.warn-bg{background:#FFFBEB;border:1px solid #FDE68A}
+.dci-circle{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:1px}
+.dci-circle.ok{background:#059669;color:#fff}
+.dci-circle.warn{background:#D97706;color:#fff}
+.dci-t{font-size:13px;font-weight:600;color:#111827}
+.dci-s{font-size:12px;color:#6B7280;margin-top:2px;line-height:1.4}
+
+/* Doc upload rows */
+.dur{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #F3F4F6}
+.dur:first-child{padding-top:0}
+.dur:last-child{border-bottom:none;padding-bottom:0}
+.dur-ico{width:36px;height:36px;border-radius:9px;background:#F4F6F8;display:flex;align-items:center;justify-content:center;font-size:18px;color:#6B7280;flex-shrink:0}
+.dur-ico.ok{background:#ECFDF5;color:#059669}
+.dur-info{flex:1;min-width:0}
+.dur-name{font-size:13px;font-weight:500;color:#111827}
+.dur-meta{font-size:11.5px;color:#9CA3AF;margin-top:1px}
+.dur-meta.ok{color:#059669}
+
+/* Review */
+.rv-sec-t{font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.5px;padding:10px 0 6px;border-top:1px solid #F3F4F6;margin-top:6px}
+.rv-sec-t:first-child{margin-top:0;border-top:none;padding-top:0}
+.rv-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:7px 0;border-bottom:1px solid #F9FAFB}
+.rv-row:last-child{border-bottom:none}
+.rv-l{font-size:12.5px;color:#6B7280}
+.rv-v{font-size:12.5px;font-weight:500;color:#111827;text-align:right}
+
+/* Status */
+.sts{text-align:center;padding:40px 20px 24px}
+.sts-ico{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:40px;margin:0 auto 20px}
+.sts-ok{background:#ECFDF5;color:#059669}
+.sts-pend{background:#FFFBEB;color:#D97706}
+.sts-err{background:#FEF2F2;color:#E42E2C}
+.sts-t{font-size:22px;font-weight:700;color:#111827;margin-bottom:8px;line-height:1.3}
+.sts-s{font-size:13.5px;color:#6B7280;line-height:1.65;margin-bottom:28px}
+
+/* Enterprise card */
+.ent-card{background:linear-gradient(135deg,#E42E2C,#B82020);border-radius:14px;padding:18px;color:#fff;margin-bottom:16px;display:flex;align-items:center;gap:14px}
+.ent-ico{font-size:36px;opacity:.9}
+.ent-lbl{font-size:11px;opacity:.7;font-weight:500}
+.ent-val{font-size:15px;font-weight:700;margin-top:3px}
+.ent-sub{font-size:11px;opacity:.65;margin-top:2px}
+.ent-badge{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:40px;padding:0 20px;border-radius:4px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .15s;-webkit-appearance:none;text-decoration:none;white-space:nowrap}
+.full{width:100%}
+.btn-p{background:#E42E2C;color:#fff}
+.btn-p:hover{background:#C52220}
+.btn-p:disabled{background:#D1D5DB;color:#9CA3AF;cursor:not-allowed}
+.btn-o{background:transparent;color:#E42E2C;border:1.5px solid #E42E2C}
+.btn-o:hover{background:#FEF2F2}
+.btn-g{background:#F4F6F8;color:#374151;border:1.5px solid #E5E7EB}
+.btn-g:hover{background:#E5E7EB}
+.btn-wa{background:#25D366;color:#fff}
+.btn-wa:hover{background:#20B85A}
+.btn-blue{background:#1D4ED8;color:#fff}
+.btn-blue:hover{background:#1E40AF}
+.btn-sm{height:32px;font-size:12.5px;border-radius:4px;padding:0 14px}
+.btn-xs{height:30px;font-size:11.5px;border-radius:7px;padding:0 12px}
+.brow{display:flex;gap:10px}
+.brow .btn{flex:1}
+
+/* EBS card */
+.ebs{background:linear-gradient(135deg,#1F3864,#2D5090);border-radius:6px;padding:16px 18px;display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.ebs-info{flex:1}
+.ebs-t{font-size:13.5px;font-weight:700;color:#fff;margin-bottom:3px}
+.ebs-s{font-size:12px;color:rgba(255,255,255,.72);line-height:1.4}
+
+/* Save later */
+.save-later{display:flex;align-items:center;gap:10px;padding:13px 16px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;cursor:pointer;transition:all .15s;margin-bottom:16px}
+.save-later:hover{border-color:#D1D5DB;background:#F3F4F6}
+.save-later-ico{font-size:20px;color:#6B7280;flex-shrink:0}
+.save-later-t{font-size:13px;font-weight:600;color:#374151}
+.save-later-s{font-size:11.5px;color:#9CA3AF;margin-top:1px}
+
+/* TnC checkbox */
+.tnc-row{display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:14px;border-radius:10px;background:#F9FAFB;border:1.5px solid #E5E7EB;transition:all .15s}
+.tnc-row:hover{border-color:#D1D5DB;background:#F3F4F6}
+.tnc-row.chk{border-color:#A7F3D0;background:#F0FDF4}
+.tnc-row.err{border-color:#FECACA;background:#FEF2F2}
+.tnc-cb{width:18px;height:18px;border-radius:5px;border:2px solid #D1D5DB;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;background:#fff;transition:all .15s;pointer-events:none}
+.tnc-row.chk .tnc-cb{background:#059669;border-color:#059669;color:#fff;font-size:11px}
+.tnc-txt{font-size:12.5px;color:#374151;line-height:1.5;pointer-events:none;user-select:none}
+.tnc-link{color:#008AFF;font-weight:500;text-decoration:underline;cursor:pointer;pointer-events:auto}
+
+/* Nav footer */
+.nav-foot{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid #E5E7EB;z-index:100;padding:12px 24px}
+.nav-foot-in{max-width:576px;margin:0 auto;display:flex;gap:10px;align-items:center}
+
+/* Modal */
+.mov{position:fixed;inset:0;background:rgba(0,0,0,.48);backdrop-filter:blur(3px);z-index:400;display:flex;align-items:center;justify-content:center;padding:24px}
+.mbox{background:#fff;border-radius:16px;width:100%;max-width:500px;box-shadow:0 20px 60px rgba(0,0,0,.22);overflow:hidden;max-height:90vh;display:flex;flex-direction:column}
+.mhd{padding:20px 24px 16px;border-bottom:1px solid #F3F4F6;flex-shrink:0}
+.mt{font-size:16px;font-weight:700;color:#111827;margin-bottom:3px}
+.ms{font-size:13px;color:#6B7280}
+.mbd{padding:20px 24px;overflow-y:auto;flex:1}
+.mft{padding:14px 24px;border-top:1px solid #F3F4F6;display:flex;gap:10px;justify-content:flex-end;flex-shrink:0}
+.mft .btn{flex:none;height:40px;font-size:13px;padding:0 18px}
+
+/* TnC body */
+.tnc-body-scroll{max-height:280px;overflow-y:auto;padding:0 24px 16px;font-size:13px;color:#4B5563;line-height:1.65}
+.tnc-body-scroll::-webkit-scrollbar{width:5px}
+.tnc-body-scroll::-webkit-scrollbar-track{background:#F4F5F7}
+.tnc-body-scroll::-webkit-scrollbar-thumb{background:#D1D5DB;border-radius:3px}
+.tnc-body-scroll p{margin-bottom:10px}
+.tnc-body-scroll p:last-child{margin-bottom:0}
+.tnc-body-scroll strong{color:#111827}
+.tnc-scroll-hint{padding:4px 24px 8px;text-align:right;font-size:11.5px;color:#9CA3AF;display:flex;align-items:center;justify-content:flex-end;gap:4px;flex-shrink:0}
+
+/* OTP */
+.otp-row{display:flex;gap:8px;justify-content:center;margin-bottom:20px}
+.otp-box{width:48px;height:56px;border:1.5px solid #D1D5DB;border-radius:10px;text-align:center;font-size:22px;font-weight:700;font-family:inherit;color:#111827;background:#fff;outline:none;transition:border-color .15s}
+.otp-box:focus{border-color:#008AFF}
+.otp-box.f{border-color:#E42E2C;background:#FFF8F8}
+
+/* PIN */
+.pin-row{display:flex;gap:14px;justify-content:center;margin-bottom:24px}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid #D1D5DB;background:transparent;transition:all .15s}
+.pin-dot.f{background:#111827;border-color:#111827}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pkey{height:56px;background:#F4F6F8;border:none;border-radius:12px;font-family:inherit;font-size:20px;font-weight:600;color:#111827;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .1s}
+.pkey:hover{background:#E5E7EB}
+.pkey.del{font-size:16px}
+.pkey.emp{background:transparent;cursor:default}
+
+/* Email sent */
+.email-disp{background:#F0FDF4;border:1px solid #A7F3D0;border-radius:8px;padding:12px 16px;font-size:14px;font-weight:600;color:#065F46;text-align:center;margin:12px 0;display:flex;align-items:center;justify-content:center;gap:8px}
+.exp-note{font-size:12px;color:#6B7280;text-align:center;margin-top:6px}
+
+/* Workbench */
+.wb{position:fixed;bottom:80px;right:24px;z-index:5000;user-select:none}
+.wb-bar{background:rgba(16,18,24,.93);border:1px solid rgba(255,255,255,.10);border-radius:18px;padding:5px 7px;display:flex;align-items:center;gap:7px;box-shadow:0 8px 32px rgba(0,0,0,.4);backdrop-filter:blur(20px)}
+.wb-grip{padding:4px 5px;cursor:grab;opacity:.45;display:flex;align-items:center}
+.wb-grip:hover{opacity:.8}
+.wb-grip i{font-size:15px;color:#fff}
+.wb-sep{width:1px;height:20px;background:rgba(255,255,255,.10)}
+.wb-tog{display:flex;background:rgba(255,255,255,.08);border-radius:10px;padding:3px;gap:2px}
+.wbtn{height:28px;padding:0 10px;border-radius:8px;border:none;background:transparent;color:rgba(255,255,255,.42);font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .15s}
+.wbtn.on{background:#0075D9;color:#fff;box-shadow:0 2px 6px rgba(0,117,217,.3)}
+.wbtn i{font-size:14px}
+.wact{height:31px;padding:0 11px;border-radius:8px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.08);color:rgba(255,255,255,.82);font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .15s}
+.wact:hover{background:rgba(255,255,255,.14)}
+.wact i{font-size:13px}
+.wg{color:#6EE7B7}
+.wr{color:#FCA5A5}
+
+/* Dev mode */
+body.dev-mode *:not(.wb-hud):not(.wb-hud *):not(.wb):not(.wb *){cursor:crosshair!important}
+.wb-hl{outline:2px solid rgba(0,117,217,.88)!important;outline-offset:1px;background-color:rgba(0,117,217,.05)!important}
+.wb-hud{position:fixed;z-index:9999;background:rgba(15,17,23,.96);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:8px 10px;font-family:monospace;font-size:10.5px;color:rgba(255,255,255,.84);pointer-events:none;max-width:240px;backdrop-filter:blur(12px);line-height:1.65;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.hud-tag{color:#7DD3FC;font-weight:600}
+.hud-cls{color:#86EFAC}
+.hud-dim{color:#FDE68A}
+.hud-col{color:#F9A8D4}
+.hud-x{color:rgba(255,255,255,.4)}
+
+/* Spinner & Skeleton */
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes skpulse{0%,100%{opacity:1}50%{opacity:.45}}
+.sk{background:#E5E7EB;border-radius:4px;animation:skpulse 1.2s ease-in-out infinite}
+
+/* OCR fill highlight */
+.fi.ocr-fill{background:#FFFBEB!important;border-color:#FCD34D!important}
+.ocr-badge{font-size:10px;font-weight:600;color:#059669;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:20px;padding:1px 7px;white-space:nowrap;margin-left:6px}
+
+/* Two-col row */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.mt2{margin-top:8px}.mt3{margin-top:12px}.mt4{margin-top:16px}
+.mb3{margin-bottom:12px}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <div class="hdr-bar">
+    <img src="data:image/png;base64,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" class="hdr-logo" alt="Privy">
+    <div class="hdr-spacer"></div>
+    <div class="lang-tog">
+      <button class="ltbtn on" id="btn-id" onclick="setLang('id')">ID</button>
+      <button class="ltbtn" id="btn-en" onclick="setLang('en')">EN</button>
+    </div>
+  </div>
+  <div class="step-bar"><div class="step-bar-inner" id="step-hdr"></div></div>
+  <div class="prog"><div class="prog-fill" id="prog-fill"></div></div>
+</header>
+<main id="app"></main>
+<div id="modal-root"></div>
+<div id="nav-foot"></div>
+<div class="wb" id="wb">
+  <div class="wb-bar">
+    <div class="wb-grip" id="wb-grip"><i class="ti ti-grip-horizontal"></i></div>
+    <div class="wb-sep"></div>
+    <div class="wb-tog">
+      <button class="wbtn on" id="wb-prev" onclick="wbSetMode('preview')"><i class="ti ti-device-desktop"></i> Preview</button>
+      <button class="wbtn" id="wb-dev" onclick="wbSetMode('dev')"><i class="ti ti-code"></i> Dev</button>
+    </div>
+    <div class="wb-sep"></div>
+    <button class="wact wg" onclick="doAutofill()"><i class="ti ti-wand"></i> Autofill</button>
+    <button class="wact wr" onclick="doReset()"><i class="ti ti-refresh"></i> Reset</button>
+  </div>
+</div>
+<script>
+
+/* ── Translations ── */
+const T={
+id:{
+  s1:'Informasi Dasar',s2:'Data Perusahaan',s3:'Review & Tanda Tangan',
+  s1t:'Informasi Dasar',s1sub:'Isi data diri Anda untuk memulai registrasi Enterprise Privy',
+  s2t:'Data Perusahaan',s2sub:'Lengkapi informasi perusahaan dan unggah dokumen yang dibutuhkan',
+  s3t:'Review & Tanda Tangan',s3sub:'Periksa data dan tanda tangani persetujuan untuk menyelesaikan registrasi',
+  nama:'Nama lengkap',namaPh:'Masukkan nama lengkap Anda',
+  email:'Alamat email',emailPh:'nama@perusahaan.com',
+  hp:'Nomor handphone',hpPh:'+62 812 XXXX XXXX',
+  perus:'Nama perusahaan',perusPh:'PT / CV / Yayasan...',
+  sektor:'Sektor bisnis',sektorPh:'Pilih sektor bisnis',
+  tncT:'Syarat & Ketentuan',tncSub:'Baca dan setujui ketentuan layanan Privy Enterprise.',
+  tncChk:'Saya telah membaca dan menyetujui ',tncLink:'Syarat & Ketentuan',
+  tncAnd:' serta ',tncPriv:'Kebijakan Privasi',tncEnd:' Privy Enterprise.',
+  tncBtn:'Baca Syarat & Ketentuan',tncAccept:'Setuju & Lanjutkan',tncCancel:'Batal',
+  docsNeed:'Dokumen yang Dibutuhkan',
+  privyidL:'PrivyID pemilik enterprise',privyidPh:'Masukkan PrivyID Anda',
+  verifyBtn:'Verifikasi',verified:'Terverifikasi',changePrivy:'Ganti PrivyID',
+  dirQ:'Apakah kamu direktur utama perusahaan?',
+  dirHint:'Jika tidak, kamu perlu melampirkan surat kuasa dari direktur utama.',
+  dirYes:'Ya, saya direktur',dirNo:'Tidak',
+  kuasaT:'Unggah Surat Kuasa',kuasaS:'Surat kuasa bermaterai dari direktur utama yang memberikan wewenang kepada Anda.',
+  nameInfo:'Nama penandatangan terisi otomatis dari PrivyID dan tidak dapat diubah.',
+  penSign:'Nama penandatangan',
+  jabL:'Jabatan',jabPh:'Chief Executive Officer',
+  emailK:'Email perusahaan',emailKPh:'info@perusahaan.com',
+  telK:'Nomor telepon perusahaan',telKPh:'+62 21 XXXX XXXX',
+  alamL:'Alamat perusahaan',alamPh:'Jl. ...',
+  npwpL:'Nomor NPWP perusahaan',npwpPh:'XX.XXX.XXX.X-XXX.XXX',
+  nibL:'Nomor Induk Berusaha (NIB)',nibPh:'Masukkan 13 digit NIB',
+  docsT:'Unggah Dokumen',
+  dNPWP:'Dokumen NPWP',dAkta:'Akta pendirian perusahaan',
+  dSK:'SK pengesahan badan usaha',dNIB:'Dokumen NIB',dKuasa:'Surat kuasa',
+  dDesc:'PDF/PNG/JPG · maks. 2 MB',upBtn:'Pilih file',upDone:'Diunggah',
+  saveLaterT:'Simpan & Lanjutkan Nanti',saveLaterS:'Link akan dikirim ke email Anda',
+  saveLaterModal:'Simpan & Lanjutkan Nanti',
+  saveLaterExp:'Link untuk melanjutkan registrasi akan dikirim ke email Anda. Link berlaku selama 7 hari.',
+  sendLink:'Kirim Link',sentT:'Link Berhasil Dikirim!',
+  sentS:'Link untuk melanjutkan registrasi telah dikirim. Link berlaku selama 7 hari.',
+  ebsT:'Butuh bantuan?',
+  ebsS:'Tim EBS kami siap membantu jika Anda memiliki pertanyaan atau kesulitan melengkapi dokumen.',
+  ebsBtn:'Chat via WhatsApp',
+  nxt:'Lanjut',bk:'Kembali',submit:'Kirim Permohonan',signBtn:'Tanda Tangani',
+  signT:'Tanda Tangan Digital',signS:'Masukkan PIN Privy Anda untuk menandatangani dokumen persetujuan.',
+  otpT:'Verifikasi OTP',otpS:'Kode OTP dikirim ke nomor yang terdaftar pada Privy ID Anda.',
+  otpTE:'Verifikasi Email Perusahaan',otpSE:'Kode OTP dikirim ke email perusahaan yang Anda masukkan.',
+  otpVerify:'Verifikasi',otpCancel:'Batal',
+  // Validation
+  eReq:'Wajib diisi',eEmail:'Format email tidak valid',
+  ePhone:'Format nomor tidak valid (contoh: +62 812 3456 7890)',
+  eNPWP:'Format NPWP tidak valid (contoh: 01.234.567.8-901.000)',
+  eNIB:'NIB harus 13 digit angka',eTnC:'Anda harus menyetujui Syarat & Ketentuan',
+  ePrivy:'PrivyID harus diverifikasi terlebih dahulu',
+  eDoc:'Dokumen ini wajib diunggah',eMin:'Minimal 3 karakter',
+  // Review
+  rvPIC:'Data Pendaftar',rvCo:'Data Perusahaan',rvDoc:'Dokumen',
+  // Pending
+  pendT:'Permohonan Sedang Diproses',pendS:'Tim Privy sedang memverifikasi data dan dokumen perusahaan Anda. Estimasi 1–3 hari kerja.',
+  refNo:'No. Permohonan',coName:'Perusahaan',subDate:'Tanggal Pengajuan',status:'Status',
+  inProcess:'Dalam Proses',notifInfo:'Notifikasi hasil verifikasi akan dikirim ke email',
+  simApprove:'Simulasi: Disetujui',simSoftRej:'Simulasi: Soft Reject',simHardRej:'Simulasi: Hard Reject',
+  // Success
+  sucT:'Selamat! Akun Enterprise Aktif',sucS:'Akun enterprise Privy perusahaan Anda berhasil diverifikasi dan siap digunakan.',
+  entVerified:'Enterprise Terverifikasi',activeSince:'Aktif sejak',
+  sucInfo:'Anda sekarang dapat menggunakan layanan tanda tangan digital, meterai elektronik, dan fitur enterprise lainnya.',
+  backHome:'Kembali ke Beranda',
+  // Soft reject
+  softT:'Permohonan Perlu Diperbaiki',softS:'Terdapat kekurangan yang perlu diperbaiki sebelum permohonan dapat diproses lebih lanjut.',
+  softReason1:'Dokumen NPWP tidak terbaca atau file rusak. Harap upload ulang dengan kualitas yang lebih baik.',
+  softReason2:'Akta pendirian yang diunggah bukan versi terbaru. Pastikan menggunakan akta perubahan terakhir beserta SK Kemenkumham terbaru.',
+  fixDoc:'Perbaiki Dokumen',
+  // Hard reject
+  hardT:'Permohonan Ditolak',hardS:'Permohonan registrasi enterprise Anda tidak dapat diproses karena tidak memenuhi syarat dan ketentuan yang berlaku.',
+  hardInfo:'Untuk informasi lebih lanjut mengenai alasan penolakan, silakan hubungi tim EBS Privy.',
+},
+en:{
+  s1:'Basic Information',s2:'Company Data',s3:'Review & Sign',
+  s1t:'Basic Information',s1sub:'Fill in your details to start Privy Enterprise registration',
+  s2t:'Company Data',s2sub:'Complete your company information and upload required documents',
+  s3t:'Review & Sign',s3sub:'Review your data and sign the agreement to complete registration',
+  nama:'Full name',namaPh:'Enter your full name',
+  email:'Email address',emailPh:'name@company.com',
+  hp:'Phone number',hpPh:'+62 812 XXXX XXXX',
+  perus:'Company name',perusPh:'PT / CV / Foundation...',
+  sektor:'Business sector',sektorPh:'Select business sector',
+  tncT:'Terms & Conditions',tncSub:'Read and agree to the Privy Enterprise service terms.',
+  tncChk:'I have read and agree to the ',tncLink:'Terms & Conditions',
+  tncAnd:' and ',tncPriv:'Privacy Policy',tncEnd:' of Privy Enterprise.',
+  tncBtn:'Read Terms & Conditions',tncAccept:'Agree & Continue',tncCancel:'Cancel',
+  docsNeed:'Required Documents',
+  privyidL:'Enterprise owner PrivyID',privyidPh:'Enter your PrivyID',
+  verifyBtn:'Verify',verified:'Verified',changePrivy:'Change PrivyID',
+  dirQ:'Are you the company\'s main director?',
+  dirHint:'If not, you need to attach a power of attorney from the main director.',
+  dirYes:'Yes, I am director',dirNo:'No',
+  kuasaT:'Upload Power of Attorney',kuasaS:'A stamped power of attorney from the main director authorizing you.',
+  nameInfo:'Signatory name is auto-filled from your PrivyID and cannot be changed.',
+  penSign:'Signatory name',
+  jabL:'Position',jabPh:'Chief Executive Officer',
+  emailK:'Company email',emailKPh:'info@company.com',
+  telK:'Company phone number',telKPh:'+62 21 XXXX XXXX',
+  alamL:'Company address',alamPh:'Street address...',
+  npwpL:'Company NPWP number',npwpPh:'XX.XXX.XXX.X-XXX.XXX',
+  nibL:'Business Registration Number (NIB)',nibPh:'Enter 13-digit NIB',
+  docsT:'Upload Documents',
+  dNPWP:'NPWP Document',dAkta:'Company deed of establishment',
+  dSK:'Ministry ratification decree (SK)',dNIB:'NIB Document',dKuasa:'Power of attorney',
+  dDesc:'PDF/PNG/JPG · max 2 MB',upBtn:'Choose file',upDone:'Uploaded',
+  saveLaterT:'Save & Continue Later',saveLaterS:'A link will be sent to your email',
+  saveLaterModal:'Save & Continue Later',
+  saveLaterExp:'A link to continue registration will be sent to your email. The link is valid for 7 days.',
+  sendLink:'Send Link',sentT:'Link Sent Successfully!',
+  sentS:'A link to continue registration has been sent. The link is valid for 7 days.',
+  ebsT:'Need help?',
+  ebsS:'Our EBS team is ready to assist if you have questions or difficulties completing your documents.',
+  ebsBtn:'Chat via WhatsApp',
+  nxt:'Next',bk:'Back',submit:'Submit Application',signBtn:'Sign',
+  signT:'Digital Signature',signS:'Enter your Privy PIN to sign the agreement document.',
+  otpT:'OTP Verification',otpS:'OTP code sent to the phone number registered with your Privy ID.',
+  otpTE:'Company Email Verification',otpSE:'OTP code sent to the company email you entered.',
+  otpVerify:'Verify',otpCancel:'Cancel',
+  eReq:'Required',eEmail:'Invalid email format',
+  ePhone:'Invalid phone format (e.g. +62 812 3456 7890)',
+  eNPWP:'Invalid NPWP format (e.g. 01.234.567.8-901.000)',
+  eNIB:'NIB must be 13 digits',eTnC:'You must agree to the Terms & Conditions',
+  ePrivy:'PrivyID must be verified first',
+  eDoc:'This document is required',eMin:'Minimum 3 characters',
+  rvPIC:'Registrant Data',rvCo:'Company Data',rvDoc:'Documents',
+  pendT:'Application Under Review',pendS:'Privy team is verifying your company data and documents. Estimated 1–3 business days.',
+  refNo:'Application No.',coName:'Company',subDate:'Submitted',status:'Status',
+  inProcess:'In Process',notifInfo:'Verification result will be sent to email',
+  simApprove:'Simulate: Approved',simSoftRej:'Simulate: Soft Reject',simHardRej:'Simulate: Hard Reject',
+  sucT:'Congratulations! Enterprise Account Active',sucS:'Your company\'s Privy enterprise account has been verified and is ready to use.',
+  entVerified:'Verified Enterprise',activeSince:'Active since',
+  sucInfo:'You can now use digital signature, electronic stamp, and other enterprise features.',
+  backHome:'Back to Home',
+  softT:'Application Needs Correction',softS:'There are issues that need to be corrected before the application can be processed.',
+  softReason1:'NPWP document is unreadable or file is damaged. Please re-upload with better quality.',
+  softReason2:'The uploaded deed of establishment is not the latest version. Please use the latest amendment deed along with the latest Ministry decree.',
+  fixDoc:'Fix Documents',
+  hardT:'Application Rejected',hardS:'Your enterprise registration application cannot be processed as it does not meet the terms and conditions.',
+  hardInfo:'For more information about the reason for rejection, please contact the Privy EBS team.',
+}};
+
+const SECTORS={
+id:['Teknologi informasi','Perbankan','Keuangan non-bank','Asuransi','Kesehatan','Pendidikan','Manufaktur','Ritel','E-Commerce','Properti & Konstruksi','Energi & Pertambangan','Logistik & Transportasi','Media & Komunikasi','Pemerintahan & BUMN','Jasa Profesional','Pertanian','Lainnya'],
+en:['Information Technology','Banking','Non-bank Financial','Insurance','Healthcare','Education','Manufacturing','Retail','E-Commerce','Property & Construction','Energy & Mining','Logistics & Transportation','Media & Communications','Government & SOE','Professional Services','Agriculture','Others']
+};
+
+const OCR_DUMMY={
+  npwp:'01.234.567.8-901.000',
+  perus:'PT TEKNOLOGI INOVASI INDONESIA',
+  alamat:'Jl. Jend. Sudirman Kav. 1, Jakarta Pusat 10220',
+  file:'npwp_pt.pdf'
+};
+
+const DEMO={
+  nama:'Dimas Aprilian Sulaiman Putra',email:'dimas.aprilian@techcorp.id',hp:'+6281234567890',
+  perus:'PT Teknologi Maju Indonesia',sektor:{id:'Teknologi informasi',en:'Information Technology'},
+  privyid:'WM0905',jabatan:'Chief Technology Officer',
+  emailK:'info@techcorp.id',telK:'+622155512345',
+  alamat:'Jl. Jend. Sudirman Kav. 55, Jakarta Selatan 12190',
+  npwp:'01.234.567.8-901.000',nib:'1234567890123',
+  docNPWP:'NPWP-Perusahaan.pdf',docAkta:'Akta-Pendirian.pdf',
+  docSK:'SK-Badan-Usaha.pdf',docNIB:'NIB-Perusahaan.pdf',docKuasa:'Surat-Kuasa.pdf'
+};
+
+/* ── State ── */
+let lang='id';
+let S={
+  screen:'step1',modal:null,otpFor:null,pin:'',tncScrolled:false,
+  autofilled:false,
+  // Step 1
+  nama:'',email:'',hp:'',perus:'',sektor:'',tncAgreed:false,
+  // Step 2
+  privyid:'',privyVerified:false,privyChecking:false,isDirector:true,
+  jabatan:'',emailK:'',
+  telK:'',alamat:'',npwp:'',nib:'',
+  docs:{npwp:null,akta:null,sk:null,nib:null,kuasa:null},
+  // OCR
+  npwpOcrState:null,npwpOcrFile:null,ocrFilled:[],
+  signState:'idle',signedTs:'',signed:false
+};
+let ERR={};
+
+/* ── Utils ── */
+function t(k){return (T[lang]&&T[lang][k])||T.id[k]||k}
+function v(key){return S.autofilled?(key==='sektor'?DEMO.sektor[lang]:DEMO[key]||''):S[key]||''}
+
+/* ── Validation ── */
+function validateEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)}
+function validatePhone(p){const d=p.replace(/\D/g,'');return (d.startsWith('62')||d.startsWith('08'))&&d.length>=10&&d.length<=14}
+function validateNPWP(n){return /^\d{2}\.\d{3}\.\d{3}\.\d-\d{3}\.\d{3}$/.test(n)||/^\d{15,16}$/.test(n.replace(/\D/g,''))}
+function validateNIB(n){return /^\d{13}$/.test(n.replace(/\s/g,''))}
+
+function validateStep1(){
+  const e={};
+  const nm=v('nama')||S.nama;
+  const em=v('email')||S.email;
+  const hp=v('hp')||S.hp;
+  const pe=v('perus')||S.perus;
+  const se=v('sektor')||S.sektor;
+  if(!nm||nm.length<3)e.nama=nm?t('eMin'):t('eReq');
+  if(!em)e.email=t('eReq');
+  else if(!validateEmail(em))e.email=t('eEmail');
+  if(!hp)e.hp=t('eReq');
+  else if(!validatePhone(hp))e.hp=t('ePhone');
+  if(!pe||pe.length<3)e.perus=pe?t('eMin'):t('eReq');
+  if(!se)e.sektor=t('eReq');
+  if(!S.tncAgreed)e.tnc=t('eTnC');
+  return e;
+}
+
+function validateStep2(){
+  const e={};
+  if(!S.privyVerified)e.privyid=t('ePrivy');
+  if(!v('jabatan')&&!S.jabatan)e.jabatan=t('eReq');
+  const ek=v('emailK')||S.emailK;
+  if(!ek)e.emailK=t('eReq');
+  else if(!validateEmail(ek))e.emailK=t('eEmail');
+  if(!v('telK')&&!S.telK)e.telK=t('eReq');
+  if(!v('alamat')&&!S.alamat)e.alamat=t('eReq');
+  const np=v('npwp')||S.npwp;
+  if(!np)e.npwp=t('eReq');
+  else if(!validateNPWP(np))e.npwp=t('eNPWP');
+  const nb=v('nib')||S.nib;
+  if(!nb)e.nib=t('eReq');
+  else if(!validateNIB(nb))e.nib=t('eNIB');
+  if(!S.docs.npwp)e.docNpwp=t('eDoc');
+  if(!S.docs.akta)e.docAkta=t('eDoc');
+  if(!S.docs.sk)e.docSk=t('eDoc');
+  if(!S.docs.nib)e.docNib=t('eDoc');
+  if(!S.isDirector&&!S.docs.kuasa)e.docKuasa=t('eDoc');
+  return e;
+}
+
+/* ── Completion Helpers ── */
+function completeBadge(){return `<span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;background:#ECFDF5;color:#059669;border:1px solid #A7F3D0;white-space:nowrap"><i class="ti ti-check" style="font-size:9px"></i> Lengkap</span>`;}
+function isInfoComplete(){return !!(v('nama')||S.nama)&&!!(v('email')||S.email)&&!!(v('hp')||S.hp)&&!!(v('perus')||S.perus)&&!!(v('sektor')||S.sektor)&&S.tncAgreed;}
+function isDataComplete(){return S.privyVerified&&!!(v('jabatan')||S.jabatan)&&!!(v('emailK')||S.emailK)&&!!(v('telK')||S.telK)&&!!(v('alamat')||S.alamat)&&!!(v('npwp')||S.npwp)&&!!(v('nib')||S.nib);}
+function isDocsComplete(){return !!(S.docs.npwp&&S.docs.akta&&S.docs.sk&&S.docs.nib&&(S.isDirector||S.docs.kuasa));}
+
+/* ── HTML Helpers ── */
+function F(id,lbl,ph,type,req=true,hint=''){
+  const val=S.autofilled?v(id):(S[id]||'');
+  const er=ERR[id];
+  const isOcr=!S.autofilled&&S.ocrFilled&&S.ocrFilled.includes(id);
+  const cls=`fi${isOcr?' ocr-fill':(val?' ok':'')}${er?' err':''}`;
+  const badge=isOcr?`<span class="ocr-badge">✓ Terisi dari NPWP</span>`:'';
+  return `<div class="fld">
+    <label class="fl" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">${lbl}${req?`<span class="fl-req">*</span>`:''}${badge}</label>
+    <div class="fi-w">
+      <input type="${type||'text'}" id="fi-${id}" class="${cls}" placeholder="${ph}" value="${val}" oninput="S['${id}']=this.value">
+    </div>
+    ${hint?`<div class="fhint">${hint}</div>`:''}
+    ${er?`<div class="ferr"><i class="ti ti-alert-circle"></i>${er}</div>`:''}
+  </div>`;
+}
+
+function FDis(lbl,val){
+  return `<div class="fld">
+    <label class="fl">${lbl}</label>
+    <div class="fi-w">
+      <input type="text" class="fi dis ico-p" value="${val}" disabled>
+      <i class="ti ti-lock fi-ico"></i>
+    </div>
+  </div>`;
+}
+
+function FSel(id,lbl,ph,opts,req=true){
+  const val=S.autofilled?v(id):(S[id]||'');
+  const er=ERR[id];
+  return `<div class="fld">
+    <label class="fl">${lbl}${req?`<span class="fl-req">*</span>`:''}</label>
+    <div class="fi-w">
+      <select id="fi-${id}" class="fi ico-p${val?' ok':''}${er?' err':''}" onchange="S['${id}']=this.value">
+        <option value="">${ph}</option>
+        ${opts.map(o=>`<option${val===o?' selected':''}>${o}</option>`).join('')}
+      </select>
+      <i class="ti ti-chevron-down fi-ico"></i>
+    </div>
+    ${er?`<div class="ferr"><i class="ti ti-alert-circle"></i>${er}</div>`:''}
+  </div>`;
+}
+
+function docUpRow(key,lbl,cond=true){
+  if(!cond)return '';
+  const done=S.docs[key];
+  const er=ERR['doc'+key.charAt(0).toUpperCase()+key.slice(1)];
+  // NPWP locked when uploaded via OCR
+  if(key==='npwp'&&S.npwpOcrState==='success'){
+    return `<div class="dur">
+      <div class="dur-ico ok"><i class="ti ti-file-check"></i></div>
+      <div class="dur-info">
+        <div class="dur-name">${lbl}</div>
+        <div class="dur-meta ok"><i class="ti ti-check"></i> ${S.npwpOcrFile||OCR_DUMMY.file} · dari upload NPWP</div>
+      </div>
+      <button class="btn btn-g btn-xs" onclick="retryNpwpUpload()"><i class="ti ti-refresh"></i> Ganti</button>
+    </div>`;
+  }
+  return `<div class="dur">
+    <div class="dur-ico${done?' ok':''}"><i class="ti ${done?'ti-file-check':'ti-file-description'}"></i></div>
+    <div class="dur-info">
+      <div class="dur-name">${lbl}</div>
+      <div class="dur-meta${done?' ok':''}">${done?'<i class="ti ti-check"></i> '+t('upDone')+' · '+DEMO['doc'+key.charAt(0).toUpperCase()+key.slice(1)]:t('dDesc')}</div>
+    </div>
+    <button class="btn${done?' btn-g btn-xs':' btn-o btn-xs'}" onclick="uploadDoc('${key}')">
+      ${done?'<i class="ti ti-check"></i>':'<i class="ti ti-upload"></i>'} ${done?t('upDone'):t('upBtn')}
+    </button>
+  </div>${er?`<div class="ferr" style="padding:4px 0 0 48px"><i class="ti ti-alert-circle"></i>${er}</div>`:''}`;
+}
+
+function al(type,html){
+  const ico={info:'ti-info-circle',ok:'ti-circle-check',warn:'ti-alert-triangle',err:'ti-alert-circle'};
+  return `<div class="al al-${type}"><i class="ti ${ico[type]} al-i"></i><div>${html}</div></div>`;
+}
+
+function rvRow(l,val){return `<div class="rv-row"><span class="rv-l">${l}</span><span class="rv-v">${val||'—'}</span></div>`}
+
+function ebsCard(){
+  return `<div class="ebs">
+    <div class="ebs-info">
+      <div class="ebs-t"><i class="ti ti-brand-whatsapp"></i> ${t('ebsT')}</div>
+      <div class="ebs-s">${t('ebsS')}</div>
+    </div>
+    <a href="https://wa.me/6281234567890?text=Halo%20Tim%20EBS%2C%20saya%20butuh%20bantuan%20registrasi%20Enterprise%20Privy." target="_blank" class="btn btn-wa btn-sm">${t('ebsBtn')}</a>
+  </div>`;
+}
+
+/* ── Screen: Step 1 ── */
+function renderStep1(){
+  const sectors=SECTORS[lang];
+  return `
+  <div class="mb3">
+    <div style="font-size:20px;font-weight:700;color:#111827;margin-bottom:4px">${t('s1t')}</div>
+    <div style="font-size:13px;color:#6B7280">${t('s1sub')}</div>
+  </div>
+  <div class="card">
+    <div class="ch"><div class="ch-t" style="flex:1">${t('s1t')}</div>${isInfoComplete()?completeBadge():''}</div>
+    <div class="cb">
+      ${F('nama',t('nama'),t('namaPh'),'text',true)}
+      ${F('email',t('email'),t('emailPh'),'email',true)}
+      ${F('hp',t('hp'),t('hpPh'),'tel',true)}
+      ${F('perus',t('perus'),t('perusPh'),'text',true)}
+      ${FSel('sektor',t('sektor'),t('sektorPh'),sectors)}
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch"><div class="ch-t" style="flex:1">${t('tncT')}</div>${S.tncAgreed?completeBadge():''}</div>
+    <div class="cb">
+      <div class="tnc-row${S.tncAgreed?' chk':''}${ERR.tnc?' err':''}" onclick="toggleTnc()">
+        <div class="tnc-cb${S.tncAgreed?' checked':''}">${S.tncAgreed?'<i class="ti ti-check"></i>':''}</div>
+        <div class="tnc-txt">${t('tncChk')}<span class="tnc-link" onclick="event.stopPropagation();openTnc()">${t('tncLink')}</span>${t('tncAnd')}<span class="tnc-link" onclick="event.stopPropagation();openTnc()">${t('tncPriv')}</span>${t('tncEnd')}</div>
+      </div>
+      ${ERR.tnc?`<div class="ferr mt2"><i class="ti ti-alert-circle"></i>${ERR.tnc}</div>`:''}
+      <p style="font-size:12px;color:#6B7280;margin-top:10px;line-height:1.55">${lang==='id'?'Dengan mendaftar, kamu menyetujui penggunaan tanda tangan elektronik sesuai UU ITE dan regulasi PSrE yang berlaku.':'By registering, you agree to the use of electronic signatures in accordance with the applicable ITE Law and PSrE regulations.'}</p>
+    </div>
+  </div>
+  <button class="btn btn-p full" onclick="validateAndNext('step1')" style="margin-bottom:16px">
+    ${t('nxt')} <i class="ti ti-arrow-right"></i>
+  </button>
+  ${ebsCard()}`;
+}
+
+/* ── Screen: Step 2 ── */
+function renderStep2(){
+  const privyContent = S.privyVerified
+    ? `<div class="privy-card">
+        <div class="privy-av">${(S.autofilled?DEMO.privyid:S.privyid||'??').substring(0,2).toUpperCase()}</div>
+        <div class="privy-info">
+          <div class="privy-name">${S.autofilled?DEMO.nama:S.nama||'Pengguna Privy'}</div>
+          <div class="privy-sub">Akun Privy ${t('verified')} · ${S.autofilled?DEMO.privyid:S.privyid}</div>
+        </div>
+        <div class="privy-vbadge"><i class="ti ti-shield-check"></i> ${t('verified')}</div>
+      </div>
+      <div><span class="privy-change" onclick="S.privyVerified=false;S.privyid='';S.npwpOcrState=null;S.ocrFilled=[];render()">${t('changePrivy')}</span></div>`
+    : `<div class="fi-w">
+         <input type="text" id="fi-privyid" class="fi${S.privyid?' ok':''}${ERR.privyid?' err':''}" placeholder="${t('privyidPh')}" value="${S.privyid||''}" oninput="S.privyid=this.value;S.privyVerified=false" onblur="if(S.privyid&&!S.privyVerified&&!S.privyChecking)checkPrivyId()">
+       </div>
+       ${ERR.privyid?`<div class="ferr"><i class="ti ti-alert-circle"></i>${ERR.privyid}</div>`:''}
+       ${S.privyChecking
+         ?`<div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:#6B7280;padding:6px 0"><i class="ti ti-loader-2" style="animation:spin .8s linear infinite;font-size:14px;color:#008AFF"></i> Memverifikasi PrivyID...</div>`
+         :''
+       }`;
+  const privySec = `<div class="fld">
+    <label class="fl" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">${t('privyidL')}<span class="fl-req">*</span></label>
+    ${privyContent}
+  </div>`;
+
+  const dirOpts = `
+    <div class="dir-q">
+      <div class="dir-q-t">${t('dirQ')}</div>
+      <div class="dir-q-s">${t('dirHint')}</div>
+      <div class="dir-opts">
+        <div class="dir-opt${S.isDirector?' sel':''}" onclick="S.isDirector=true;render()">
+          <div class="dir-rb${S.isDirector?' sel':''}"><div class="dir-rb-dot"></div></div>
+          ${t('dirYes')}
+        </div>
+        <div class="dir-opt${!S.isDirector?' sel':''}" onclick="S.isDirector=false;render()">
+          <div class="dir-rb${!S.isDirector?' sel':''}"><div class="dir-rb-dot"></div></div>
+          ${t('dirNo')}
+        </div>
+      </div>
+      ${!S.isDirector?`
+      <div class="kuasa mt3">
+        <div class="kuasa-t"><i class="ti ti-file-certificate"></i> ${t('kuasaT')}</div>
+        <div class="kuasa-s">${t('kuasaS')}</div>
+        <div class="up-area${S.docs.kuasa?' done':''}" onclick="uploadDoc('kuasa')">
+          <div class="up-ico${S.docs.kuasa?' done':''}"><i class="ti ${S.docs.kuasa?'ti-file-check':'ti-upload'}"></i></div>
+          ${S.docs.kuasa
+            ?`<div class="up-fname"><i class="ti ti-check"></i> ${DEMO.docKuasa}</div>`
+            :`<div class="up-txt"><strong>${t('upBtn')}</strong> atau seret ke sini<br><span style="font-size:11px;color:#9CA3AF">${t('dDesc')}</span></div>`}
+        </div>
+        ${ERR.docKuasa?`<div class="ferr mt2"><i class="ti ti-alert-circle"></i>${ERR.docKuasa}</div>`:''}
+      </div>`:''}
+    </div>`;
+
+  const emailKField = F('emailK',t('emailK'),t('emailKPh'),'email',true);
+
+  return `
+  <div class="mb3">
+    <div style="font-size:20px;font-weight:700;color:#111827;margin-bottom:4px">${t('s2t')}</div>
+    <div style="font-size:13px;color:#6B7280">${t('s2sub')}</div>
+  </div>
+  <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px;padding:10px 14px;display:flex;align-items:center;gap:8px;margin-bottom:12px">
+    <i class="ti ti-device-floppy" style="color:#6B7280;font-size:15px;flex-shrink:0"></i>
+    <span style="font-size:12px;color:#6B7280;line-height:1.5">${lang==='id'?'Belum siap? Simpan progress dan lanjutkan nanti — klik tombol <strong style="color:#374151">Simpan & Lanjutkan Nanti</strong> di bawah.':'Not ready? Save and continue later — tap <strong style="color:#374151">Save & Continue Later</strong> below.'}</span>
+  </div>
+  <div class="card">
+    <div class="ch">
+      <div class="ch-t" style="flex:1">${t('docsNeed')}</div>
+      <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#6B7280;border:1px solid #E5E7EB;border-radius:20px;padding:2px 10px;white-space:nowrap"><i class="ti ti-clock" style="font-size:11px"></i> ~10–15 mnt</span>
+    </div>
+    <div class="cb">
+      <div class="dci ok-bg"><div class="dci-circle ok"><i class="ti ti-check"></i></div><div><div class="dci-t">Akun Privy (PrivyID)</div><div class="dci-s">Diperlukan untuk menandatangani perjanjian layanan dan menjadi pemilik enterprise.<br><span style="color:#008AFF;font-size:11px">Belum punya? <a href="https://privy.id" target="_blank">Daftar di sini</a></span></div></div></div>
+      <div class="dci ok-bg"><div class="dci-circle ok"><i class="ti ti-check"></i></div><div><div class="dci-t">NPWP perusahaan</div><div class="dci-s">File asli NPWP perusahaan (PDF/PNG/JPG) — bisa diisi otomatis via OCR</div></div></div>
+      <div class="dci ok-bg"><div class="dci-circle ok"><i class="ti ti-check"></i></div><div><div class="dci-t">Akta pendirian perusahaan</div><div class="dci-s">File akta asli atau salinan yang dilegalisir</div></div></div>
+      <div class="dci ok-bg"><div class="dci-circle ok"><i class="ti ti-check"></i></div><div><div class="dci-t">SK pengesahan badan usaha</div><div class="dci-s">Surat keputusan pengesahan dari Kemenkumham</div></div></div>
+      <div class="dci ok-bg"><div class="dci-circle ok"><i class="ti ti-check"></i></div><div><div class="dci-t">NIB (Nomor Induk Berusaha)</div><div class="dci-s">Nomor dan file dokumen NIB perusahaan dari OSS</div></div></div>
+      <div class="dci warn-bg"><div class="dci-circle warn"><i class="ti ti-alert-triangle" style="font-size:10px"></i></div><div><div class="dci-t" style="color:#92400E">Surat kuasa <span style="font-weight:400;color:#B45309">(jika diperlukan)</span></div><div class="dci-s" style="color:#B45309">Diperlukan jika pemilik Enterprise tidak tercantum sebagai pejabat berwenang dalam akta pendirian.</div></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch"><div class="ch-t" style="flex:1">${t('s2t')}</div>${isDataComplete()?completeBadge():`<span class="bdr bdr-red">Wajib</span>`}</div>
+    <div class="cb">
+      ${privySec}
+      ${dirOpts}
+      ${al('info',`<i class="ti ti-wand"></i> ${t('nameInfo')}`)}
+      ${FDis(t('penSign'),S.autofilled?DEMO.nama:(S.nama||'—'))}
+      ${F('jabatan',t('jabL'),t('jabPh'),'text',true)}
+      ${emailKField}
+      ${F('telK',t('telK'),t('telKPh'),'tel',true)}
+      ${S.privyVerified?renderNpwpOcr():''}
+      ${F('npwp',t('npwpL'),t('npwpPh'),'text',true,'Format: XX.XXX.XXX.X-XXX.XXX')}
+      ${F('alamat',t('alamL'),t('alamPh'),'text',true)}
+      ${F('nib',t('nibL'),t('nibPh'),'text',true,'13 digit angka')}
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch"><div class="ch-t" style="flex:1">${t('docsT')}</div>${isDocsComplete()?completeBadge():`<span class="bdr bdr-red">Wajib</span>`}</div>
+    <div class="cb">
+      ${docUpRow('npwp',t('dNPWP'))}
+      ${docUpRow('akta',t('dAkta'))}
+      ${docUpRow('sk',t('dSK'))}
+      ${docUpRow('nib',t('dNIB'))}
+      ${!S.isDirector?docUpRow('kuasa',t('dKuasa')):''}
+    </div>
+  </div>
+  <div class="save-later" onclick="S.modal='save';render()">
+    <div class="save-later-ico"><i class="ti ti-device-floppy"></i></div>
+    <div><div class="save-later-t">${t('saveLaterT')}</div><div class="save-later-s">${t('saveLaterS')}</div></div>
+    <i class="ti ti-chevron-right" style="color:#D1D5DB;font-size:18px"></i>
+  </div>
+  <button class="btn btn-p full" onclick="validateAndNext('step2')" style="margin-bottom:16px;height:48px;font-size:14.5px;font-weight:700">
+    <i class="ti ti-device-floppy"></i> ${lang==='id'?'Simpan & Lanjutkan':'Save & Continue'}
+  </button>
+  ${ebsCard()}`;
+}
+
+/* ── NPWP OCR (inline inside form card) ── */
+function renderNpwpOcr(){
+  if(S.autofilled)return '';
+  const st=S.npwpOcrState;
+  if(st===null){
+    return `<div style="border:1.5px dashed #93C5FD;border-radius:6px;padding:12px 14px;margin:4px 0 12px;background:#F0F7FF">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+        <i class="ti ti-scan" style="color:#1D4ED8;font-size:14px"></i>
+        <span style="font-size:12.5px;font-weight:600;color:#1D4ED8">Upload NPWP untuk isi data otomatis</span>
+        <span style="font-size:10px;color:#059669;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:20px;padding:1px 7px;white-space:nowrap">OCR Otomatis</span>
+      </div>
+      <div style="font-size:12px;color:#6B7280;margin-bottom:10px">NPWP, nama perusahaan, dan alamat akan terisi otomatis.</div>
+      <div class="up-area" onclick="triggerNpwpUpload()" style="border-style:dashed;border-color:#93C5FD;background:#EFF6FF;cursor:pointer;padding:10px 14px">
+        <div class="up-ico"><i class="ti ti-file-upload" style="color:#1D4ED8;font-size:20px"></i></div>
+        <div class="up-txt"><strong style="color:#1D4ED8">Upload NPWP</strong> atau seret ke sini<br><span style="font-size:11px;color:#9CA3AF">PDF, PNG, JPG maks. 5 MB</span></div>
+      </div>
+      <div style="text-align:center;margin-top:8px">
+        <button style="font-size:12px;color:#9CA3AF;background:none;border:none;cursor:pointer;text-decoration:underline" onclick="continueManual()">Lewati, isi manual</button>
+      </div>
+    </div>`;
+  }
+  if(st==='loading'){
+    return `<div style="border:1px solid #E5E7EB;border-radius:6px;padding:12px 14px;margin:4px 0 12px;background:#F9FAFB">
+      <div style="font-size:12px;color:#6B7280;display:flex;align-items:center;gap:6px;margin-bottom:10px">
+        <i class="ti ti-loader-2" style="animation:spin .8s linear infinite;color:#008AFF"></i>
+        Membaca data NPWP...
+      </div>
+      <div class="sk" style="height:11px;width:72%;margin-bottom:7px;border-radius:3px"></div>
+      <div class="sk" style="height:11px;width:58%;margin-bottom:7px;border-radius:3px"></div>
+      <div class="sk" style="height:11px;width:65%;border-radius:3px"></div>
+    </div>`;
+  }
+  if(st==='success'){
+    return `<div style="border:1px solid #A7F3D0;border-radius:6px;padding:10px 14px;margin:4px 0 12px;background:#ECFDF5;display:flex;align-items:center;gap:10px">
+      <i class="ti ti-file-check" style="color:#059669;font-size:18px;flex-shrink:0"></i>
+      <div style="flex:1">
+        <div style="font-size:12.5px;font-weight:600;color:#059669">Data NPWP berhasil terbaca otomatis</div>
+        <div style="font-size:11.5px;color:#6B7280;margin-top:2px">${S.npwpOcrFile||OCR_DUMMY.file} — periksa & edit jika diperlukan</div>
+      </div>
+      <button class="btn btn-g btn-xs" onclick="retryNpwpUpload()"><i class="ti ti-refresh"></i> Ganti</button>
+    </div>`;
+  }
+  if(st==='error'){
+    return `<div style="border:1px solid #FECACA;border-radius:6px;padding:10px 14px;margin:4px 0 10px;background:#FEF2F2">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <i class="ti ti-alert-circle" style="color:#DC2626;font-size:16px;flex-shrink:0"></i>
+        <div>
+          <div style="font-size:12.5px;font-weight:600;color:#DC2626">Gagal membaca NPWP</div>
+          <div style="font-size:11.5px;color:#B91C1C;margin-top:1px">File tidak dapat dibaca. Coba file lain atau isi manual.</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-o btn-xs" onclick="retryNpwpUpload()"><i class="ti ti-refresh"></i> Coba lagi</button>
+        <button class="btn btn-g btn-xs" onclick="continueManual()">Isi manual</button>
+      </div>
+    </div>`;
+  }
+  return '';
+}
+
+function triggerNpwpUpload(){
+  S.npwpOcrState='loading';render();
+  setTimeout(()=>{
+    S.npwpOcrState='success';
+    S.npwpOcrFile=OCR_DUMMY.file;
+    S.docs.npwp=true;
+    if(!S.perus){S.perus=OCR_DUMMY.perus;S.ocrFilled.push('perus');}
+    if(!S.npwp){S.npwp=OCR_DUMMY.npwp;S.ocrFilled.push('npwp');}
+    if(!S.alamat){S.alamat=OCR_DUMMY.alamat;S.ocrFilled.push('alamat');}
+    const npwpErr='doc'+('npwp').charAt(0).toUpperCase()+('npwp').slice(1);
+    if(ERR[npwpErr])delete ERR[npwpErr];
+    render();
+  },2200);
+}
+
+function retryNpwpUpload(){
+  S.npwpOcrState=null;S.npwpOcrFile=null;
+  S.ocrFilled=S.ocrFilled.filter(id=>id!=='perus'&&id!=='npwp'&&id!=='alamat');
+  S.docs.npwp=null;render();
+}
+
+function continueManual(){
+  S.npwpOcrState='manual';render();
+}
+
+/* ── Barcode helper ── */
+function generateBarcodeSVG(){
+  const pat=[2,1,3,1,2,2,1,3,1,2,1,1,3,2,1,2,3,1,1,2,1,2,2,1];
+  const W=56,H=38,sc=W/pat.reduce((a,b)=>a+b,0);
+  let x=0,r='';
+  pat.forEach((w,i)=>{const bw=Math.max(1,Math.round(w*sc));if(i%2===0)r+=`<rect x="${x}" y="0" width="${bw}" height="${H}" fill="#1F2329"/>`;x+=bw;});
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${r}</svg>`;
+}
+
+/* ── Screen: Step 3 ── */
+function renderStep3(){
+  const dStat=key=>S.docs[key]?`<span style="color:#059669"><i class="ti ti-check"></i> ${t('upDone')}</span>`:`<span style="color:#9CA3AF">—</span>`;
+  const nm=S.autofilled?DEMO.nama:S.nama||'—';
+  const pid=S.autofilled?DEMO.privyid:S.privyid||'—';
+  const perus=S.autofilled?DEMO.perus:S.perus||'—';
+  const signState=S.signState||'idle';
+
+  // Signature area states
+  const sigArea=signState==='idle'
+    ?`<div style="border:2px dashed #D9DDE3;border-radius:6px;height:72px;display:flex;align-items:center;justify-content:center;margin-bottom:14px"><span style="font-size:11px;color:#A0ABB9">[ Area tanda tangan / Signature area ]</span></div>`
+    :signState==='stamped'
+    ?`<div style="margin-bottom:14px"><div style="border:2px solid #ADD9FF;border-radius:6px;background:#E5F3FF;padding:10px 14px;display:flex;align-items:center;gap:12px">${generateBarcodeSVG()}<div><div style="font-size:10px;font-weight:600;color:#004C8C">${nm}</div><div style="font-size:9px;color:#008AFF">Privy ID: ${pid}</div></div></div></div>`
+    :`<div style="margin-bottom:14px"><div style="border:1.5px solid #D9DDE3;border-radius:6px;background:#fff;padding:10px 14px;display:flex;align-items:center;gap:12px">${generateBarcodeSVG()}<div><div style="font-size:10px;font-weight:600;color:#1F2329">Signed by ${nm}</div><div style="font-size:9px;color:#728196">Privy ID: ${pid}</div><div style="font-size:9px;color:#A0ABB9">${S.signedTs}</div></div></div></div>`;
+
+  // Toolbar states
+  const toolbar=signState==='idle'
+    ?`<button class="btn btn-p btn-sm" onclick="placeSigStamp()"><i class="ti ti-writing"></i> Taruh tanda tangan (1)</button>`
+    :signState==='stamped'
+    ?`<button style="height:36px;padding:0 16px;background:#008AFF;color:#fff;border:none;border-radius:6px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px" onclick="openSignAuth()"><i class="ti ti-check"></i> Konfirmasi tanda tangan</button>`
+    :`<span style="display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;background:#059669;color:#fff;border-radius:4px;font-size:12.5px;font-weight:600"><i class="ti ti-rosette-discount-check"></i> Ditandatangani</span>`;
+
+  const dotColor=signState==='signed'?'#059669':'#E42E2C';
+  const statusTxt=signState==='signed'?`Dokumen telah ditandatangani secara digital · ${S.signedTs}`:`Belum ditandatangani — klik tombol "Taruh tanda tangan" di atas`;
+  const statusColor=signState==='signed'?'#059669':'#6B7280';
+
+  const submitBtn=signState==='signed'
+    ?`<button class="btn btn-p full" onclick="goTo('pending')"><i class="ti ti-send"></i> Submit untuk verifikasi</button>`
+    :`<button class="btn btn-p full" disabled style="opacity:.4;cursor:not-allowed"><i class="ti ti-send"></i> Submit untuk verifikasi</button>`;
+
+  return `
+  <div class="mb3">
+    <div style="font-size:20px;font-weight:700;color:#111827;margin-bottom:4px">${t('s3t')}</div>
+    <div style="font-size:13px;color:#6B7280">${t('s3sub')}</div>
+  </div>
+  ${al('warn','Periksa kembali seluruh data sebelum mengirim. Data tidak dapat diubah setelah permohonan dikirimkan.')}
+  <div class="card">
+    <div class="ch"><div class="ch-t" style="flex:1">${t('rvPIC')}</div></div>
+    <div class="cb">
+      <div class="rv-sec-t">${t('s1t')}</div>
+      ${rvRow(t('nama'),S.autofilled?DEMO.nama:S.nama)}
+      ${rvRow(t('email'),S.autofilled?DEMO.email:S.email)}
+      ${rvRow(t('hp'),S.autofilled?DEMO.hp:S.hp)}
+      ${rvRow(t('perus'),perus)}
+      ${rvRow(t('sektor'),S.autofilled?DEMO.sektor[lang]:S.sektor)}
+      <div class="rv-sec-t">${t('s2t')}</div>
+      ${rvRow(t('privyidL'),pid)}
+      ${rvRow(t('jabL'),S.autofilled?DEMO.jabatan:S.jabatan)}
+      ${rvRow(t('emailK'),S.autofilled?DEMO.emailK:S.emailK)}
+      ${rvRow(t('telK'),S.autofilled?DEMO.telK:S.telK)}
+      ${rvRow(t('alamL'),S.autofilled?DEMO.alamat:S.alamat)}
+      ${rvRow(t('npwpL'),S.autofilled?DEMO.npwp:S.npwp)}
+      ${rvRow(t('nibL'),S.autofilled?DEMO.nib:S.nib)}
+      <div class="rv-sec-t">${t('rvDoc')}</div>
+      ${rvRow(t('dNPWP'),dStat('npwp'))}
+      ${rvRow(t('dAkta'),dStat('akta'))}
+      ${rvRow(t('dSK'),dStat('sk'))}
+      ${rvRow(t('dNIB'),dStat('nib'))}
+      ${!S.isDirector?rvRow(t('dKuasa'),dStat('kuasa')):''}
+    </div>
+  </div>
+
+  <!-- Document Viewer -->
+  <div class="card" style="overflow:visible">
+    <div class="ch" style="justify-content:space-between;align-items:center">
+      <div class="ch-t" style="flex:1;font-size:12px;color:#6B7280;font-weight:500">Formulir Pendaftaran Layanan Enterprise Account Privy</div>
+      ${toolbar}
+    </div>
+    <div style="background:#E8EAED;height:480px;overflow-y:auto" id="doc-scroll">
+      <div style="padding:24px 12px">
+        <div style="background:#fff;max-width:100%;min-height:720px;padding:40px 48px;margin:0 auto;box-shadow:0 2px 8px rgba(0,0,0,.18);font-size:11px;color:#495260;line-height:1.65">
+          <p style="text-align:right;font-style:italic;color:#728196;margin-bottom:20px;font-size:10px">Sangat Rahasia / <em>Strictly Confidential</em></p>
+          <p style="font-weight:700;text-align:center;font-size:13px;color:#1F2329;margin-bottom:2px">Formulir Pendaftaran Layanan Enterprise Account Privy</p>
+          <p style="text-align:center;font-size:11px;font-style:italic;color:#728196;margin-bottom:24px">Privy Enterprise Account Service Registration Form</p>
+          <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:20px">
+            <tr><td style="width:140px;color:#728196;padding:2px 0">No. Privy</td><td style="width:12px;color:#728196;padding:2px 4px">:</td><td style="font-weight:600;color:#1F2329">${pid}</td></tr>
+          </table>
+          <p style="font-weight:700;font-size:12px;color:#1F2329;margin-bottom:6px">A. Identitas Para Pihak / <em style="font-weight:400;color:#728196">Identity of the Parties</em></p>
+          <p style="font-size:11px;color:#5B6778;line-height:1.65;margin-bottom:10px">Formulir ini adalah perjanjian yang sah antara PT Privy Identitas Digital ("Privy") dan Pelanggan sebagai berikut: / <em>This Form is a valid agreement between PT Privy Identitas Digital ("Privy") and the Customer as follows:</em></p>
+          <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:8px">
+            <tr><td style="width:160px;color:#728196;padding:3px 0">Nama / <em>Name</em></td><td style="width:12px;color:#728196;padding:3px 4px">:</td><td style="color:#1F2329">${perus}</td></tr>
+            <tr><td style="color:#728196;padding:3px 0">Alamat / <em>Address</em></td><td style="color:#728196;padding:3px 4px">:</td><td style="color:#1F2329">${S.autofilled?DEMO.alamat:S.alamat||'—'}</td></tr>
+            <tr><td style="color:#728196;padding:3px 0">Bidang usaha / <em>Line of business</em></td><td style="color:#728196;padding:3px 4px">:</td><td style="color:#1F2329">${S.autofilled?DEMO.sektor[lang]:S.sektor||'—'}</td></tr>
+            <tr><td style="color:#728196;padding:3px 0">NPWP / <em>Tax ID</em></td><td style="color:#728196;padding:3px 4px">:</td><td style="color:#1F2329">${S.autofilled?DEMO.npwp:S.npwp||'—'}</td></tr>
+          </table>
+          <p style="font-size:11px;color:#5B6778;font-style:italic;margin-bottom:4px">("Pelanggan" / "Customer")</p>
+          <p style="font-size:11px;color:#5B6778;margin-bottom:6px">Dalam hal ini diwakili secara sah oleh: / <em>In this case legally represented by:</em></p>
+          <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px">
+            <tr><td style="width:160px;color:#728196;padding:3px 0">Nama / <em>Name</em></td><td style="width:12px;color:#728196;padding:3px 4px">:</td><td style="color:#1F2329">${nm}</td></tr>
+            <tr><td style="color:#728196;padding:3px 0">Jabatan / <em>Title</em></td><td style="color:#728196;padding:3px 4px">:</td><td style="color:#1F2329">${S.autofilled?DEMO.jabatan:S.jabatan||'—'}</td></tr>
+          </table>
+          <p style="font-size:11px;color:#5B6778;line-height:1.65;margin-bottom:20px">Para Pihak sepakat bahwa Formulir ini tunduk pada Ketentuan Umum di <span style="color:#008AFF">https://privy.id/general-terms</span>. / <em>The Parties agree this Form is subject to General Terms at https://privy.id/general-terms.</em></p>
+          <p style="font-weight:700;font-size:12px;color:#1F2329;margin-bottom:6px">B. Korespondensi / <em style="font-weight:400;color:#728196">Correspondence</em></p>
+          <p style="font-size:11px;font-weight:500;color:#5B6778;margin-bottom:4px">Privy:</p>
+          <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px">
+            <tr><td style="width:160px;color:#728196;padding:3px 0">Alamat / <em>Address</em></td><td style="width:12px;color:#728196;padding:3px 4px">:</td><td style="color:#495260">CIBIS Tower 9, Jl. Raya Cilandak KKO No. 129, Jakarta Selatan 12560</td></tr>
+            <tr><td style="color:#728196;padding:3px 0">Surel / <em>E-mail</em></td><td style="color:#728196;padding:3px 4px">:</td><td style="color:#495260">bd@privy.id</td></tr>
+          </table>
+          <p style="font-size:11px;font-weight:500;color:#5B6778;margin-bottom:4px">Pelanggan / <em style="font-weight:400">Customer:</em></p>
+          <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:20px">
+            <tr><td style="width:160px;color:#728196;padding:3px 0">Alamat / <em>Address</em></td><td style="width:12px;color:#728196;padding:3px 4px">:</td><td style="color:#1F2329">${S.autofilled?DEMO.alamat:S.alamat||'—'}</td></tr>
+            <tr><td style="color:#728196;padding:3px 0">Surel / <em>E-mail</em></td><td style="color:#728196;padding:3px 4px">:</td><td style="color:#1F2329">${S.autofilled?DEMO.emailK:S.emailK||'—'}</td></tr>
+          </table>
+          <p style="font-weight:700;font-size:12px;color:#1F2329;margin-bottom:6px">C. Jenis dan Biaya Layanan / <em style="font-weight:400;color:#728196">Types and Costs of Services</em></p>
+          <p style="font-size:11px;color:#5B6778;line-height:1.65;margin-bottom:20px">Pelanggan setuju untuk mendaftar dan membeli layanan Enterprise Account Privy sesuai pilihan paket yang dikonfirmasi saat pendaftaran. Biaya belum termasuk PPN dan bersifat pra-bayar (pre-paid) non-refundable. / <em>The Customer agrees to purchase the Privy Enterprise Account service per the confirmed package. Fees exclude VAT and are pre-paid non-refundable.</em></p>
+          <p style="font-weight:700;font-size:12px;color:#1F2329;margin-bottom:6px">D. Jangka Waktu / <em style="font-weight:400;color:#728196">Term of Agreement</em></p>
+          <p style="font-size:11px;color:#5B6778;line-height:1.65;margin-bottom:20px">Perjanjian ini berlaku efektif selama 1 (satu) tahun sejak tanggal aktivasi dan diperpanjang otomatis untuk setiap periode 1 (satu) tahun berikutnya kecuali diakhiri. / <em>This Agreement is effective for 1 year from activation and auto-renewed annually unless terminated.</em></p>
+          <p style="font-weight:700;font-size:12px;color:#1F2329;margin-bottom:6px">E. Pernyataan dan Jaminan / <em style="font-weight:400;color:#728196">Representations and Warranties</em></p>
+          <p style="font-size:11px;color:#5B6778;margin-bottom:6px">Dengan menandatangani Formulir ini, Pelanggan menyatakan dan menjamin bahwa: / <em>By signing this Form, the Customer represents and warrants that:</em></p>
+          <ol style="font-size:11px;color:#5B6778;padding-left:20px;line-height:1.8;margin-bottom:20px">
+            <li>Penandatangan adalah perwakilan yang sah dan berwenang mengikatkan Perusahaan; / <em>The signatory is a lawful representative authorized to bind the Company;</em></li>
+            <li>Pelanggan telah membaca, memahami, dan menyetujui seluruh Ketentuan Umum; / <em>The Customer has read, understood, and agreed to all General Terms;</em></li>
+            <li>Formulir ini beserta Ketentuan Umum merupakan perjanjian yang sah dan mengikat. / <em>This Form and the General Terms constitute a valid and binding agreement.</em></li>
+          </ol>
+          <!-- Signature page -->
+          <div style="border-top:1px solid #E6E7EB;margin-top:32px;padding-top:28px">
+            <p style="font-weight:700;text-align:center;font-size:12px;color:#1F2329;margin-bottom:20px">HALAMAN TANDA TANGAN / <em style="font-weight:400">SIGNATURE PAGE</em></p>
+            <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:16px">
+              <tr><td style="width:140px;color:#728196;padding:3px 0">Tanggal / <em>Date</em></td><td style="width:12px;color:#728196;padding:3px 4px">:</td><td style="color:#1F2329">${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}</td></tr>
+              <tr><td style="color:#728196;padding:3px 0">Pelanggan / <em>Customer</em></td><td style="color:#728196;padding:3px 4px">:</td><td style="color:#1F2329">${perus}</td></tr>
+            </table>
+            <p style="font-size:11px;color:#5B6778;margin-bottom:20px">Untuk dan atas nama Pelanggan / <em>For and on behalf of the Customer:</em></p>
+            ${sigArea}
+            <table style="width:100%;border-collapse:collapse;font-size:11px">
+              <tr><td style="width:140px;color:#728196;padding:3px 0">Nama / <em>Name</em></td><td style="width:12px;color:#728196;padding:3px 4px">:</td><td style="color:#1F2329">${nm}</td></tr>
+              <tr><td style="color:#728196;padding:3px 0">Jabatan / <em>Title</em></td><td style="color:#728196;padding:3px 4px">:</td><td style="color:#1F2329">${S.autofilled?DEMO.jabatan:S.jabatan||'—'}</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status bar -->
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+    <div style="width:8px;height:8px;border-radius:50%;background:${dotColor};flex-shrink:0"></div>
+    <span style="font-size:13px;color:${statusColor}">${statusTxt}</span>
+  </div>
+
+  ${submitBtn}
+  <div style="margin-top:12px">${ebsCard()}</div>`;
+}
+
+/* ── Status Screens ── */
+function renderPending(){
+  const regId='ENT-'+Math.floor(100000+Math.random()*899999);
+  const email=S.autofilled?DEMO.email:S.email;
+  return `<div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:16px;padding:8px 0 4px">
+    <div style="width:88px;height:88px;border-radius:50%;background:#EFF6FF;display:flex;align-items:center;justify-content:center;font-size:36px">⏳</div>
+    <div>
+      <div style="font-size:18px;font-weight:700;color:#111827;margin-bottom:6px">${lang==='id'?'Pendaftaran berhasil dikirim!':'Registration submitted!'}</div>
+      <div style="font-size:13px;color:#6B7280;line-height:1.5;max-width:290px;margin:0 auto">${lang==='id'?'Data dan dokumen kamu sudah kami terima. Tim Privy akan memverifikasi dalam waktu 10–30 menit.':'Your data and documents have been received. Privy team will verify within 10–30 minutes.'}</div>
+    </div>
+    <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px;padding:10px 14px;display:flex;align-items:center;gap:8px;width:100%;max-width:360px">
+      <i class="ti ti-hash" style="color:#9CA3AF;font-size:15px;flex-shrink:0"></i>
+      <span style="font-size:11.5px;color:#6B7280;flex-shrink:0">${lang==='id'?'ID Registrasi:':'Reg. ID:'}</span>
+      <strong id="pend-reg-id" style="font-size:11.5px;color:#111827;font-family:monospace;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${regId}</strong>
+      <button onclick="const el=document.getElementById('pend-reg-id');if(navigator.clipboard)navigator.clipboard.writeText(el.textContent)" style="flex-shrink:0;background:none;border:none;cursor:pointer;color:#008AFF;padding:0;display:flex;align-items:center"><i class="ti ti-copy" style="font-size:15px"></i></button>
+    </div>
+    <div style="background:#F9FAFB;border-radius:6px;padding:16px;text-align:left;width:100%;max-width:360px">
+      <div style="font-size:11.5px;font-weight:600;color:#111827;margin-bottom:12px">${lang==='id'?'Apa yang terjadi selanjutnya?':'What happens next?'}</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="width:24px;height:24px;border-radius:50%;background:#059669;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px"><i class="ti ti-check" style="color:#fff;font-size:10px"></i></div>
+          <div><div style="font-size:12px;font-weight:500;color:#111827">${lang==='id'?'Dokumen diterima':'Documents received'}</div><div style="font-size:11px;color:#9CA3AF">${lang==='id'?'Semua dokumen berhasil diunggah':'All documents successfully uploaded'}</div></div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="width:24px;height:24px;border-radius:50%;background:#E42E2C;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px"><i class="ti ti-loader-2" style="color:#fff;font-size:10px;animation:spin 1s linear infinite"></i></div>
+          <div><div style="font-size:12px;font-weight:500;color:#111827">${lang==='id'?'Verifikasi oleh tim Privy':'Verification by Privy team'}</div><div style="font-size:11px;color:#9CA3AF">SLA: 10–30 ${lang==='id'?'menit kerja':'working minutes'}</div></div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="width:24px;height:24px;border-radius:50%;background:#F3F4F6;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px"><span style="font-size:10px;font-weight:600;color:#9CA3AF">3</span></div>
+          <div><div style="font-size:12px;font-weight:500;color:#9CA3AF">${lang==='id'?'Notifikasi via email':'Email notification'}</div><div style="font-size:11px;color:#9CA3AF">${lang==='id'?'ke':'to'} ${email||'—'}</div></div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="width:24px;height:24px;border-radius:50%;background:#F3F4F6;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px"><span style="font-size:10px;font-weight:600;color:#9CA3AF">4</span></div>
+          <div><div style="font-size:12px;font-weight:500;color:#9CA3AF">${lang==='id'?'Enterprise aktif':'Enterprise active'}</div><div style="font-size:11px;color:#9CA3AF">${lang==='id'?'Mulai gunakan semua fitur Enterprise':'Start using all Enterprise features'}</div></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;width:100%;max-width:360px">
+      <button class="btn btn-g" style="flex:1;font-size:11.5px" onclick="goTo('soft_reject')">${t('simSoftRej')}</button>
+      <button style="flex:1;font-size:11.5px;height:36px;padding:0 12px;border:1.5px solid #FECACA;border-radius:4px;background:#FEF2F2;color:#E42E2C;cursor:pointer;font-family:inherit;font-weight:500" onclick="goTo('hard_reject')">${t('simHardRej')}</button>
+    </div>
+    <button onclick="goTo('success')" style="font-size:11.5px;color:#6B7280;border:1px dashed #D1D5DB;border-radius:4px;padding:6px 16px;background:transparent;cursor:pointer;font-family:inherit">${t('simApprove')} →</button>
+    <div style="font-size:11.5px;color:#6B7280;margin-top:2px">${lang==='id'?'Mengalami kendala? <a href="#" onclick="return false" style="color:#008AFF;font-weight:500">Hubungi tim Privy</a>':'Having issues? <a href="#" onclick="return false" style="color:#008AFF;font-weight:500">Contact Privy team</a>'}</div>
+  </div>
+  ${ebsCard()}`;
+}
+
+function renderSuccess(){
+  const perus=S.autofilled?DEMO.perus:S.perus||'perusahaan Anda';
+  return `<div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:16px;padding:8px 0 4px">
+    <div style="width:88px;height:88px;border-radius:50%;background:#ECFDF5;display:flex;align-items:center;justify-content:center;font-size:36px">🎉</div>
+    <div>
+      <div style="font-size:18px;font-weight:700;color:#111827;margin-bottom:6px">${lang==='id'?'Selamat! Enterprise kamu terverifikasi':'Congratulations! Enterprise verified'}</div>
+      <div style="font-size:13px;color:#6B7280;line-height:1.5;max-width:290px;margin:0 auto">${lang==='id'?'Akun enterprise':'Enterprise account'} <strong style="color:#111827">${perus}</strong> ${lang==='id'?'sudah aktif dan siap digunakan.':'is now active and ready to use.'}</div>
+    </div>
+    <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px;overflow:hidden;width:100%;max-width:380px">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid #F3F4F6;cursor:pointer">
+        <div style="width:28px;height:28px;border-radius:5px;background:#ECFDF5;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-users" style="color:#059669;font-size:14px"></i></div>
+        <div style="flex:1;text-align:left"><div style="font-size:12px;font-weight:600;color:#111827">${lang==='id'?'Undang karyawan':'Invite employees'}</div><div style="font-size:11px;color:#6B7280">${lang==='id'?'Tambahkan anggota tim ke akun enterprise':'Add team members to your enterprise account'}</div></div>
+        <i class="ti ti-chevron-right" style="color:#9CA3AF;font-size:14px;flex-shrink:0"></i>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid #F3F4F6;cursor:pointer">
+        <div style="width:28px;height:28px;border-radius:5px;background:#ECFDF5;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-file-plus" style="color:#059669;font-size:14px"></i></div>
+        <div style="flex:1;text-align:left"><div style="font-size:12px;font-weight:600;color:#111827">${lang==='id'?'Buat dokumen pertama':'Create first document'}</div><div style="font-size:11px;color:#6B7280">${lang==='id'?'Mulai tanda tangani dokumen secara digital':'Start signing documents digitally'}</div></div>
+        <i class="ti ti-chevron-right" style="color:#9CA3AF;font-size:14px;flex-shrink:0"></i>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer">
+        <div style="width:28px;height:28px;border-radius:5px;background:#ECFDF5;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-stamp" style="color:#059669;font-size:14px"></i></div>
+        <div style="flex:1;text-align:left"><div style="font-size:12px;font-weight:600;color:#111827">${lang==='id'?'Atur enterprise seal':'Set up enterprise seal'}</div><div style="font-size:11px;color:#6B7280">${lang==='id'?'Aktifkan stempel dan cap digital perusahaan':'Activate your company\'s digital stamp'}</div></div>
+        <i class="ti ti-chevron-right" style="color:#9CA3AF;font-size:14px;flex-shrink:0"></i>
+      </div>
+    </div>
+    <button class="btn btn-p full" style="background:#E42E2C;border-color:#E42E2C;height:42px;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px;max-width:380px"><i class="ti ti-rocket" style="font-size:16px"></i> ${lang==='id'?'Mulai gunakan Privy Enterprise':'Start using Privy Enterprise'}</button>
+    <div style="font-size:11.5px;color:#6B7280;margin-top:2px">${lang==='id'?'Butuh bantuan? <a href="#" onclick="return false" style="color:#008AFF;font-weight:500">Pelajari cara menggunakan Privy Enterprise</a>':'Need help? <a href="#" onclick="return false" style="color:#008AFF;font-weight:500">Learn how to use Privy Enterprise</a>'}</div>
+  </div>`;
+}
+
+function renderSoftReject(){
+  const rejDocs=[
+    {key:'npwp',label:lang==='id'?'NPWP Perusahaan':'Company Tax ID (NPWP)',reason:t('softReason1')},
+    {key:'akta',label:lang==='id'?'Akta Pendirian Perusahaan':'Deed of Establishment',reason:t('softReason2')}
+  ];
+  const allUploaded=rejDocs.every(d=>S.docs[d.key]);
+  const reasonItems=rejDocs.map((doc,i)=>`<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;${i<rejDocs.length-1?'border-bottom:1px solid #FEE2E2':''}">
+    <div style="width:20px;height:20px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px"><span style="font-size:10px;font-weight:700;color:#E42E2C">${i+1}</span></div>
+    <div><div style="font-size:12px;font-weight:600;color:#111827;margin-bottom:2px">${doc.label}</div><div style="font-size:11.5px;color:#6B7280;line-height:1.4">${doc.reason}</div></div>
+  </div>`).join('');
+  function docRow(doc){
+    const up=S.docs[doc.key];
+    let inner='';
+    if(up){
+      inner=`<div style="font-size:11.5px;color:#059669;display:flex;align-items:center;gap:4px;margin-top:6px"><i class="ti ti-check" style="font-size:13px"></i> File berhasil diupload</div>`;
+    }else{
+      inner=`<label style="display:flex;align-items:center;justify-content:center;gap:6px;height:38px;border:1.5px dashed #F87171;border-radius:4px;cursor:pointer;font-size:12.5px;color:#E42E2C;background:#fff;font-weight:500;margin-top:8px"><i class="ti ti-upload"></i> ${lang==='id'?'Upload ulang file':'Re-upload file'}<input type="file" style="display:none" onchange="uploadDoc('${doc.key}')"></label>`;
+    }
+    return `<div style="border:1px solid ${up?'#A7F3D0':'#E5E7EB'};border-radius:6px;padding:12px 14px;margin-bottom:8px;background:${up?'#F0FDF4':'#fff'}"><div style="display:flex;align-items:center;gap:8px"><i class="ti ti-${up?'circle-check':'file'}" style="color:${up?'#059669':'#6B7280'};font-size:14px;flex-shrink:0"></i><span style="font-size:12.5px;font-weight:600;color:#111827;flex:1">${doc.label}</span>${up?'<span class="bdr bdr-green">Terupload ✓</span>':''}</div>${inner}</div>`;
+  }
+  const uploadRows=rejDocs.map(docRow).join('');
+  return `<div class="sts">
+    <div class="sts-ico sts-err"><i class="ti ti-alert-circle"></i></div>
+    <div class="sts-t">${t('softT')}</div>
+    <div class="sts-s">${t('softS')}</div>
+  </div>
+  <div class="card">
+    <div class="ch">
+      <div class="ch-ico" style="background:#FEF2F2;color:#E42E2C"><i class="ti ti-alert-triangle"></i></div>
+      <div>
+        <div class="ch-t">${lang==='id'?'Alasan Penolakan':'Rejection Reasons'}</div>
+        <div class="ch-sub">${lang==='id'?'Tim Privy menemukan kekurangan berikut':'Privy team found the following issues'}</div>
+      </div>
+    </div>
+    <div class="cb" style="padding-top:4px">
+      ${reasonItems}
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch">
+      <div class="ch-ico warn"><i class="ti ti-file-upload"></i></div>
+      <div>
+        <div class="ch-t">${lang==='id'?'Upload Ulang Dokumen':'Re-upload Documents'}</div>
+        <div class="ch-sub">${lang==='id'?'Ganti dengan file yang benar lalu kirim ulang':'Replace with correct files then resubmit'}</div>
+      </div>
+    </div>
+    <div class="cb">
+      ${uploadRows}
+      <button class="btn btn-p full" style="${allUploaded?'':'opacity:.45;cursor:not-allowed'}" onclick="if(${allUploaded})goTo('pending')">${lang==='id'?'Kirim Ulang Permohonan':'Resubmit Application'}</button>
+    </div>
+  </div>
+  ${ebsCard()}`;
+}
+
+function renderHardReject(){
+  const reasons=lang==='id'?[
+    'Identitas direktur tidak sesuai dengan data kependudukan (NIK/Dukcapil) — data tidak dapat diverifikasi',
+    'Entitas perusahaan tidak ditemukan atau berstatus tidak aktif dalam sistem OSS/NIB Kemenkumham',
+    'Dokumen akta pendirian tidak dapat diverifikasi keasliannya dan terindikasi tidak sah secara hukum'
+  ]:[
+    'Director identity does not match civil registration data (NIK/Dukcapil) — data could not be verified',
+    'Company entity not found or inactive in the OSS/NIB system (Ministry of Law and Human Rights)',
+    'Deed of establishment authenticity could not be verified and is indicated to be legally invalid'
+  ];
+  const reasonList=reasons.map((r,i)=>`<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;${i<reasons.length-1?'border-bottom:1px solid #FEE2E2':''}">
+    <div style="width:20px;height:20px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px"><span style="font-size:10px;font-weight:700;color:#E42E2C">${i+1}</span></div>
+    <div style="font-size:12.5px;color:#374151;line-height:1.45">${r}</div>
+  </div>`).join('');
+  return `<div class="sts">
+    <div class="sts-ico sts-err"><i class="ti ti-ban"></i></div>
+    <div class="sts-t">${t('hardT')}</div>
+    <div class="sts-s">${t('hardS')}</div>
+  </div>
+  <div class="card">
+    <div class="ch">
+      <div class="ch-ico" style="background:#FEF2F2;color:#E42E2C"><i class="ti ti-alert-octagon"></i></div>
+      <div>
+        <div class="ch-t">${lang==='id'?'Alasan Penolakan':'Rejection Reasons'}</div>
+        <div class="ch-sub">${lang==='id'?'Permohonan tidak dapat diproses ulang dengan data yang sama':'Cannot be reprocessed with the same data'}</div>
+      </div>
+    </div>
+    <div class="cb" style="padding-top:4px">
+      ${reasonList}
+    </div>
+  </div>
+  <div style="background:#FFF8F8;border:1px solid #FECACA;border-radius:6px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:#6B7280;line-height:1.5">
+    <strong style="color:#374151">${lang==='id'?'Catatan:':'Note:'}</strong> ${lang==='id'?'Keputusan penolakan bersifat final. Jika Anda yakin terjadi kekeliruan, ajukan permohonan baru dengan data yang telah diperbaiki dan dokumen valid.':'The rejection decision is final. If you believe an error occurred, please submit a new application with corrected data and valid documents.'}
+  </div>
+  <button class="btn btn-p full" onclick="goTo('step1')">${lang==='id'?'Daftar Ulang':'Re-Register'}</button>
+  ${ebsCard()}`;
+}
+
+function renderEmailSent(){
+  const email=S.autofilled?DEMO.email:S.email;
+  return `<div class="sts">
+    <div class="sts-ico sts-ok"><i class="ti ti-mail-check"></i></div>
+    <div class="sts-t">${t('sentT')}</div>
+    <div class="sts-s">${t('sentS')}</div>
+  </div>
+  <div class="email-disp"><i class="ti ti-mail"></i> ${email}</div>
+  <div class="exp-note"><i class="ti ti-clock"></i> Link berlaku 7 hari</div>
+  <button class="btn btn-p full mt4" onclick="goTo('step2')">${lang==='id'?'Lanjutkan Sekarang':'Continue Now'}</button>
+  ${ebsCard()}`;
+}
+
+/* ── Modals ── */
+function mOtp(){
+  const forEmail=S.otpFor==='email';
+  return `<div class="mov" onclick="if(event.target===this){S.modal=null;render()}">
+    <div class="mbox">
+      <div class="mhd"><div class="mt">${forEmail?t('otpTE'):t('otpT')}</div><div class="ms">${forEmail?t('otpSE'):t('otpS')}</div></div>
+      <div class="mbd">
+        <div class="otp-row">
+          ${[0,1,2,3,4,5].map(i=>`<input class="otp-box${S.autofilled?' f':''}" type="text" maxlength="1" value="${S.autofilled?'•':''}">`).join('')}
+        </div>
+      </div>
+      <div class="mft">
+        <button class="btn btn-g" onclick="S.modal=null;render()">${t('otpCancel')}</button>
+        <button class="btn btn-p" onclick="confirmOtp()">${t('otpVerify')}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function mAuth(){
+  return `<div style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,0.45);backdrop-filter:blur(2px);display:flex;align-items:flex-end;justify-content:center" onclick="if(event.target===this){S.modal=null;render()}">
+    <div style="background:#fff;width:100%;max-width:576px;border-radius:20px 20px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.15)">
+      <div style="display:flex;justify-content:center;padding:12px 0 4px">
+        <div style="width:40px;height:4px;border-radius:2px;background:#D1D5DB"></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px 14px;border-bottom:1px solid #F3F4F6">
+        <div>
+          <div style="font-size:15px;font-weight:700;color:#111827">Metode autentikasi</div>
+          <div style="font-size:12px;color:#6B7280;margin-top:2px">Pilih metode untuk menandatangani dokumen</div>
+        </div>
+        <button onclick="S.modal=null;render()" style="width:32px;height:32px;border-radius:50%;background:#F4F6F8;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-x" style="font-size:13px;color:#6B7280"></i></button>
+      </div>
+      <div style="margin:14px 20px 10px;display:flex;align-items:center;gap:8px;padding:8px 12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px">
+        <span style="font-size:11.5px;color:#1D4ED8;font-weight:500;display:flex;align-items:center;gap:4px"><i class="ti ti-shield-check" style="font-size:12px"></i> Ditandatangani dengan Privy — Mitra terpercaya BSrE</span>
+      </div>
+      <div style="padding:0 20px;display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;border:2px solid #008AFF;background:rgba(0,138,255,.05)">
+          <div style="width:36px;height:36px;border-radius:8px;background:#DBEAFE;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-lock" style="color:#1D4ED8;font-size:16px"></i></div>
+          <div style="flex:1"><div style="font-size:13px;font-weight:600;color:#111827">PIN</div><div style="font-size:11.5px;color:#6B7280">6 digit PIN rahasia Anda</div></div>
+          <div style="width:20px;height:20px;border-radius:50%;background:#008AFF;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-check" style="color:#fff;font-size:10px"></i></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;border:1px solid #E5E7EB;background:#fff">
+          <div style="width:36px;height:36px;border-radius:8px;background:#F4F6F8;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-mail" style="color:#6B7280;font-size:16px"></i></div>
+          <div style="flex:1"><div style="font-size:13px;font-weight:500;color:#111827">Email OTP</div><div style="font-size:11.5px;color:#6B7280">Kode OTP dikirim ke email</div></div>
+          <div style="width:20px;height:20px;border-radius:50%;border:2px solid #D1D5DB;flex-shrink:0"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;border:1px solid #E5E7EB;background:#fff">
+          <div style="width:36px;height:36px;border-radius:8px;background:#F4F6F8;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-brand-whatsapp" style="color:#6B7280;font-size:16px"></i></div>
+          <div style="flex:1"><div style="font-size:13px;font-weight:500;color:#111827">WhatsApp</div><div style="font-size:11.5px;color:#6B7280">Kode OTP via WhatsApp</div></div>
+          <div style="width:20px;height:20px;border-radius:50%;border:2px solid #D1D5DB;flex-shrink:0"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;border:1px solid #E5E7EB;background:#fff">
+          <div style="width:36px;height:36px;border-radius:8px;background:#F4F6F8;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-message" style="color:#6B7280;font-size:16px"></i></div>
+          <div style="flex:1"><div style="font-size:13px;font-weight:500;color:#111827">SMS OTP</div><div style="font-size:11.5px;color:#6B7280">Kode OTP dikirim via SMS</div></div>
+          <div style="width:20px;height:20px;border-radius:50%;border:2px solid #D1D5DB;flex-shrink:0"></div>
+        </div>
+      </div>
+      <label style="display:flex;align-items:center;gap:10px;margin:0 20px 14px;cursor:pointer">
+        <input type="checkbox" style="width:16px;height:16px;accent-color:#008AFF;flex-shrink:0">
+        <span style="font-size:13px;color:#374151">Jadikan metode utama</span>
+      </label>
+      <div style="padding:0 20px 24px;display:flex;gap:8px">
+        <button class="btn btn-g" style="flex:1" onclick="S.modal=null;render()">Batal</button>
+        <button style="flex:2;height:40px;background:#008AFF;color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px" onclick="openSignPin()"><i class="ti ti-check" style="font-size:15px"></i> Lanjutkan</button>
+      </div>
+    </div>
+  </div>`;}
+
+function updatePinDots(){
+  const f=S.pin.length;
+  for(let i=0;i<6;i++){
+    const el=document.getElementById('pin-dot-'+i);
+    if(!el)continue;
+    const on=i<f;
+    el.style.borderColor=on?'#008AFF':'#E5E7EB';
+    el.style.background=on?'#008AFF':'#F4F6F8';
+    el.innerHTML=on?'<div style="width:8px;height:8px;border-radius:50%;background:#fff"></div>':'';
+  }
+  const btn=document.getElementById('pin-submit-btn');
+  if(btn){
+    if(f===6){btn.removeAttribute('disabled');btn.style.opacity='1';btn.style.cursor='pointer';}
+    else{btn.setAttribute('disabled','');btn.style.opacity='0.4';btn.style.cursor='not-allowed';}
+  }
+}
+
+function mPin(){
+  const perus=S.autofilled?DEMO.perus:S.perus||'perusahaan Anda';
+  const f=S.pin.length;
+  const pinFilled=f===6;
+  const dots=[0,1,2,3,4,5].map(i=>{
+    const on=i<f;
+    return `<div id="pin-dot-${i}" style="width:40px;height:40px;border-radius:8px;border:2px solid ${on?'#008AFF':'#E5E7EB'};background:${on?'#008AFF':'#F4F6F8'};display:flex;align-items:center;justify-content:center;transition:all .15s">${on?'<div style="width:8px;height:8px;border-radius:50%;background:#fff"></div>':''}</div>`;
+  }).join('');
+  return `<div class="mov">
+    <div class="mbox">
+      <div class="mhd" style="position:relative;padding-left:48px">
+        <button onclick="S.modal='auth';S.pin='';render()" style="position:absolute;left:20px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;background:#F4F6F8;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center"><i class="ti ti-arrow-left" style="font-size:14px;color:#6B7280"></i></button>
+        <div class="mt">Konfirmasi</div>
+      </div>
+      <div class="mbd">
+        <div style="margin-bottom:14px">
+          <div style="font-size:10.5px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Alasan</div>
+          <div style="font-size:13px;color:#111827;background:#F9FAFB;border-radius:6px;padding:10px 12px;line-height:1.45">Saya menyetujui dokumen ini atas nama ${perus}</div>
+        </div>
+        <div style="margin-bottom:14px">
+          <div style="font-size:10.5px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Catatan <span style="font-weight:400;text-transform:none">(opsional)</span></div>
+          <textarea style="width:100%;border:1px solid #D1D5DB;border-radius:4px;padding:8px 12px;font-family:inherit;font-size:13px;resize:none;outline:none;color:#111827" rows="2" placeholder="Tambahkan catatan…" maxlength="120"></textarea>
+        </div>
+        <div>
+          <div style="font-size:10.5px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">PIN</div>
+          <div style="display:flex;justify-content:center;gap:8px;margin-bottom:12px">${dots}</div>
+          <input type="password" id="pin-input" maxlength="6" inputmode="numeric" autocomplete="off"
+            style="width:100%;height:44px;border:1.5px solid #E5E7EB;border-radius:6px;text-align:center;font-size:22px;letter-spacing:8px;outline:none;font-family:inherit;background:#F9FAFB;display:block;box-sizing:border-box"
+            placeholder="······"
+            oninput="S.pin=this.value.replace(/[^0-9]/g,'').slice(0,6);this.value=S.pin;updatePinDots();if(S.pin.length===6)setTimeout(completeSigning,350)">
+          <div style="text-align:center;font-size:11.5px;color:#9CA3AF;margin-top:6px;margin-bottom:10px"><i class="ti ti-keyboard" style="font-size:12px"></i> Masukkan 6 digit PIN</div>
+          <div style="text-align:center"><button onclick="S.modal='auth';S.pin='';render()" style="font-size:12.5px;color:#008AFF;background:none;border:none;cursor:pointer;text-decoration:underline">Ganti metode</button></div>
+        </div>
+      </div>
+      <div class="mft">
+        <button id="pin-submit-btn" class="btn btn-p" ${pinFilled?'':`disabled style="opacity:.4;cursor:not-allowed"`} onclick="${pinFilled?'completeSigning()':''}"><i class="ti ti-writing"></i> Tanda tangan</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function mTnc(){
+  const TNC_BODY=`<p>Selamat datang di Layanan Enterprise Suite!</p>
+<p>Terima kasih atas ketertarikan Anda menggunakan Enterprise Suite. Dengan mendaftarkan Enterprise Suite atau menggunakan Layanan Enterprise Suite, Anda menyatakan telah membaca, memahami, dan menyetujui Ketentuan Penggunaan Layanan Enterprise Suite ini (<strong>"Ketentuan Penggunaan"</strong>).</p>
+<p>Ketentuan Penggunaan ini merupakan bagian yang tidak terpisahkan dari ketentuan dan syarat umum penggunaan layanan Privy termasuk namun tidak terbatas pada Ketentuan Penggunaan Privy Personal, Tata Cara Pengelolaan Sertifikat (CPS), Kebijakan Jaminan dan/atau Kebijakan Garansi, Pemberitahuan Privasi, Perjanjian Pemegang Sertifikat dan Perjanjian Pihak Pengandal sebagaimana tertera dalam <strong>https://repository.privyca.id</strong> dan Ketentuan Meterai Elektronik.</p>
+<p>Ketentuan Penggunaan ini mungkin diubah dari waktu ke waktu. Dengan tetap mengakses Enterprise Suite, maka Pelanggan dianggap menyetujui perubahan atas Ketentuan Penggunaan ini.</p>
+<p><strong>Pendaftaran Enterprise Suite</strong></p>
+<p>Untuk keperluan verifikasi identitas, Pelanggan wajib memberikan informasi yang diminta oleh Privy antara lain berupa nama perusahaan, alamat perusahaan, NPWP perusahaan, akta pendirian perusahaan beserta SK pengesahan dari Kemenkumham.</p>
+<p><strong>Penggunaan Layanan Enterprise</strong></p>
+<p>Pelanggan bertanggung jawab penuh atas segala penggunaan Enterprise Account, termasuk namun tidak terbatas pada: (i) menjaga kerahasiaan informasi akses Enterprise Account; (ii) memastikan bahwa setiap Admin yang didaftarkan pada Enterprise Account Pelanggan memiliki kewenangan yang sah untuk bertindak atas nama Pelanggan.</p>
+<p><strong>Pembatasan Penggunaan</strong></p>
+<p>Pelanggan dilarang menggunakan Layanan Enterprise untuk: (i) tujuan yang melanggar hukum; (ii) menyebarkan konten yang bersifat ilegal; (iii) melakukan tindakan yang dapat merusak sistem Privy.</p>
+<p><strong>Kerahasiaan Data</strong></p>
+<p>Privy berkomitmen untuk menjaga kerahasiaan data Pelanggan sesuai dengan Kebijakan Privasi Privy. Privy tidak akan mengungkapkan data Pelanggan kepada pihak ketiga tanpa persetujuan Pelanggan, kecuali diwajibkan oleh hukum.</p>
+<p><strong>Hukum yang Berlaku</strong></p>
+<p>Ketentuan Penggunaan ini tunduk pada hukum yang berlaku di Republik Indonesia. Segala sengketa akan diselesaikan melalui Badan Arbitrase Nasional Indonesia (BANI).</p>`;
+  return `<div class="mov" onclick="if(event.target===this){S.modal=null;render()}">
+    <div class="mbox">
+      <div class="mhd" style="text-align:center;border-bottom:1px solid #F3F4F6;padding:18px 24px 14px">
+        <div class="mt">Ketentuan Penggunaan Layanan Enterprise Suite</div>
+        <div class="ms" style="color:#9CA3AF;font-size:11.5px;margin-top:2px">Tanggal efektif: 20 Agustus 2024</div>
+      </div>
+      <div class="tnc-body-scroll" id="tnc-scroll" onscroll="checkTncScroll()">${TNC_BODY}</div>
+      <div class="tnc-scroll-hint" id="tnc-hint" style="${S.tncScrolled?'display:none':''}">
+        <i class="ti ti-chevrons-down" style="font-size:12px"></i> Gulir ke bawah untuk melanjutkan
+      </div>
+      <div class="mft" style="justify-content:space-between;align-items:center">
+        <div style="display:flex;gap:3px">
+          <button onclick="setLang('id');render()" style="height:32px;padding:0 12px;border:1px solid ${lang==='id'?'#D1D5DB':'transparent'};border-radius:4px;font-family:inherit;font-size:12px;font-weight:${lang==='id'?'600':'400'};color:${lang==='id'?'#111827':'#6B7280'};background:${lang==='id'?'#fff':'transparent'};cursor:pointer">Indonesia</button>
+          <button onclick="setLang('en');render()" style="height:32px;padding:0 12px;border:1px solid ${lang==='en'?'#D1D5DB':'transparent'};border-radius:4px;font-family:inherit;font-size:12px;font-weight:${lang==='en'?'600':'400'};color:${lang==='en'?'#111827':'#6B7280'};background:${lang==='en'?'#fff':'transparent'};cursor:pointer">English</button>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-g" style="height:36px;font-size:13px;padding:0 16px" onclick="S.modal=null;render()">${t('tncCancel')}</button>
+          <button class="btn btn-p" style="height:36px;font-size:13px;padding:0 16px;${S.tncScrolled?'':'opacity:.45;cursor:not-allowed'}" id="tnc-accept" onclick="acceptTnc()">${t('tncAccept')}</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function mSaveLater(){
+  const email=S.autofilled?DEMO.email:S.email;
+  return `<div class="mov" onclick="if(event.target===this){S.modal=null;render()}">
+    <div class="mbox">
+      <div class="mhd"><div class="mt">${t('saveLaterModal')}</div><div class="ms">${t('saveLaterExp')}</div></div>
+      <div class="mbd">
+        ${al('info','Progress yang telah diisi akan disimpan. Klik link di email untuk melanjutkan kapan saja dalam 7 hari.')}
+        <div style="font-size:12.5px;color:#6B7280;margin-bottom:6px">Link dikirim ke:</div>
+        <div class="email-disp"><i class="ti ti-mail"></i> ${email||'email Anda'}</div>
+      </div>
+      <div class="mft">
+        <button class="btn btn-g" onclick="S.modal=null;render()">${t('tncCancel')}</button>
+        <button class="btn btn-p" onclick="sendSaveLink()">${t('sendLink')}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ── Event Handlers ── */
+function checkPrivyId(){
+  const pid=S.autofilled?DEMO.privyid:S.privyid;
+  if(!pid||pid.length<6||!/^(?=.*[a-zA-Z])(?=.*\d)/.test(pid)){
+    ERR.privyid=lang==='id'?'Minimal 6 karakter, kombinasi huruf dan angka':'Min. 6 characters with letters and numbers';
+    render();return;
+  }
+  S.privyChecking=true;render();
+  setTimeout(()=>{S.privyChecking=false;S.privyVerified=true;ERR.privyid=null;render();},1200);
+}
+
+function placeSigStamp(){
+  if((S.signState||'idle')!=='idle')return;
+  S.signState='stamped';render();
+  setTimeout(()=>{const sc=document.getElementById('doc-scroll');if(sc)sc.scrollTo({top:sc.scrollHeight,behavior:'smooth'});},300);
+}
+
+function rejectSigStamp(){
+  S.signState='idle';S.modal=null;render();
+}
+
+function openSignAuth(){
+  S.modal='auth';render();
+}
+
+function openSignPin(){
+  S.modal='pin';S.pin='';render();
+}
+
+function completeSigning(){
+  const now=new Date();
+  const ts=now.toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})+' · '+now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})+' WIB';
+  S.signState='signed';S.signedTs=ts;S.signed=true;S.modal=null;render();
+}
+
+function setLang(l){
+  lang=l;
+  document.getElementById('btn-id').classList.toggle('on',l==='id');
+  document.getElementById('btn-en').classList.toggle('on',l==='en');
+  render();
+}
+
+function goTo(s){S.screen=s;S.modal=null;ERR={};render();window.scrollTo(0,0);}
+
+function validateAndNext(from){
+  let e={};
+  if(from==='step1')e=validateStep1();
+  else if(from==='step2')e=validateStep2();
+  if(Object.keys(e).length>0){
+    ERR=e;render();
+    const firstErrEl=document.querySelector('.ferr,.fi.err,.tnc-row.err');
+    if(firstErrEl)firstErrEl.scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+  ERR={};
+  if(from==='step1')goTo('step2');
+  else if(from==='step2')goTo('step3');
+}
+
+function openTnc(){S.modal='tnc';render();}
+function toggleTnc(){
+  if(!S.tncAgreed&&!S.tncScrolled){S.modal='tnc';render();return;}
+  S.tncAgreed=!S.tncAgreed;ERR.tnc=null;render();
+}
+function checkTncScroll(){
+  const el=document.getElementById('tnc-scroll');
+  if(!el)return;
+  if(el.scrollTop+el.clientHeight>=el.scrollHeight-10){
+    S.tncScrolled=true;
+    const hint=document.getElementById('tnc-hint');
+    if(hint)hint.style.display='none';
+    const btn=document.getElementById('tnc-accept');
+    if(btn){btn.style.opacity='1';btn.style.cursor='pointer';}
+  }
+}
+function acceptTnc(){S.tncAgreed=true;S.tncScrolled=true;S.modal=null;ERR.tnc=null;render();}
+
+function confirmOtp(){
+  if(S.otpFor==='privy'){S.privyVerified=true;}
+  S.modal=null;render();
+}
+
+function pinKey(k){
+  if(k==='del'){S.pin=S.pin.slice(0,-1);render();return;}
+  if(S.pin.length<6){
+    S.pin+=k;
+    if(S.pin.length===6){setTimeout(completeSigning,380);}
+    else render();
+  }
+}
+
+function uploadDoc(key){S.docs[key]=true;const ek='doc'+key.charAt(0).toUpperCase()+key.slice(1);if(ERR[ek])delete ERR[ek];render();}
+
+function sendSaveLink(){S.modal=null;goTo('email_sent');}
+
+/* ── Autofill / Reset ── */
+function doAutofill(){
+  S.autofilled=true;S.privyVerified=true;S.privyChecking=false;
+  S.isDirector=true;S.tncAgreed=true;S.signed=false;
+  S.signState='idle';S.signedTs='';
+  S.docs={npwp:true,akta:true,sk:true,nib:true,kuasa:null};
+  S.npwpOcrState=null;S.npwpOcrFile=null;S.ocrFilled=[];
+  ERR={};render();
+}
+function doReset(){
+  S={screen:S.screen,modal:null,otpFor:null,pin:'',tncScrolled:false,
+    autofilled:false,nama:'',email:'',hp:'',perus:'',sektor:'',tncAgreed:false,
+    privyid:'',privyVerified:false,privyChecking:false,isDirector:true,
+    jabatan:'',emailK:'',telK:'',alamat:'',npwp:'',nib:'',
+    docs:{npwp:null,akta:null,sk:null,nib:null,kuasa:null},
+    npwpOcrState:null,npwpOcrFile:null,ocrFilled:[],
+    signState:'idle',signedTs:'',signed:false};
+  ERR={};render();
+}
+
+/* ── Workbench ── */
+let _wbMode='preview',_inspEl=null,_hud=null,_drag=false,_ox=0,_oy=0;
+const _wb=document.getElementById('wb');
+
+function wbSetMode(m){
+  _wbMode=m;
+  document.getElementById('wb-prev').classList.toggle('on',m==='preview');
+  document.getElementById('wb-dev').classList.toggle('on',m==='dev');
+  document.body.classList.toggle('dev-mode',m==='dev');
+  if(m!=='dev')clearInsp();
+}
+function clearInsp(){
+  if(_inspEl){_inspEl.classList.remove('wb-hl');_inspEl=null;}
+  if(_hud){_hud.remove();_hud=null;}
+}
+document.getElementById('wb-grip').addEventListener('mousedown',e=>{
+  _drag=true;const r=_wb.getBoundingClientRect();
+  _ox=e.clientX-(r.left+r.width/2);_oy=e.clientY-(window.innerHeight-r.bottom);
+  e.currentTarget.style.cursor='grabbing';e.preventDefault();
+});
+document.addEventListener('mousemove',e=>{
+  if(!_drag)return;
+  _wb.style.left=(e.clientX-_ox)+'px';
+  _wb.style.bottom=(window.innerHeight-e.clientY-_oy)+'px';
+  _wb.style.right='auto';_wb.style.transform='none';
+});
+document.addEventListener('mouseup',()=>{_drag=false;const g=document.getElementById('wb-grip');if(g)g.style.cursor='grab';});
+
+document.getElementById('app').addEventListener('mouseover',e=>{
+  if(_wbMode!=='dev')return;
+  const el=e.target;if(el===_inspEl||!document.getElementById('app').contains(el))return;
+  clearInsp();_inspEl=el;el.classList.add('wb-hl');
+  const r=el.getBoundingClientRect(),cs=window.getComputedStyle(el);
+  const tag=el.tagName.toLowerCase();
+  const cls=(el.className||'').toString().split(' ').filter(Boolean).slice(0,3).join('.')||'—';
+  if(!_hud){_hud=document.createElement('div');_hud.className='wb-hud';document.body.appendChild(_hud);}
+  _hud.innerHTML=`<div><span class="hud-tag">&lt;${tag}&gt;</span></div><div class="hud-cls">.${cls}</div><div class="hud-dim">${Math.round(r.width)} × ${Math.round(r.height)}px</div><div class="hud-col">bg: ${cs.backgroundColor}</div><div class="hud-col">color: ${cs.color}</div><div class="hud-x">font: ${cs.fontSize}/${cs.fontWeight}</div>`;
+  posHud(e);
+});
+document.getElementById('app').addEventListener('mousemove',e=>{if(_wbMode==='dev'&&_hud)posHud(e);});
+document.getElementById('app').addEventListener('mouseout',()=>{if(_wbMode==='dev')clearInsp();});
+function posHud(e){let l=e.clientX+14,t2=e.clientY-(_hud.offsetHeight||80)-8;if(l+248>window.innerWidth)l=e.clientX-262;if(t2<4)t2=e.clientY+14;_hud.style.left=l+'px';_hud.style.top=t2+'px';}
+
+/* ── Render ── */
+function renderStepHdr(){
+  const steps=[
+    {key:'step1',label:t('s1')},
+    {key:'step2',label:t('s2')},
+    {key:'step3',label:t('s3')}
+  ];
+  const cur={'step1':0,'step2':1,'step3':2}[S.screen]??null;
+  if(cur===null)return '';
+  let h='';
+  steps.forEach((st,i)=>{
+    const done=i<cur,act=i===cur;
+    h+=`<div class="si">
+      <div class="sc${done?' done':act?' act':' idle'}">${done?'<i class="ti ti-check" style="font-size:10px"></i>':(i+1)}</div>
+      <div class="sn${done?' done':act?' act':''}">${st.label}</div>
+    </div>`;
+    if(i<2)h+=`<div class="sline${done?' done':''}"></div>`;
+  });
+  return h;
+}
+
+function renderNavFoot(){
+  const cur={'step1':0,'step2':1,'step3':2}[S.screen]??null;
+  if(cur===null)return '';
+  if(cur===0)return '';
+  let btns='';
+  if(cur===1){
+    btns=`<button class="btn btn-g" onclick="goTo('step1')"><i class="ti ti-arrow-left"></i> ${t('bk')}</button>`;
+  } else {
+    btns=`<button class="btn btn-g" onclick="goTo('step2')"><i class="ti ti-arrow-left"></i> ${t('bk')}</button>`;
+  }
+  return `<div class="nav-foot"><div class="nav-foot-in">${btns}</div></div>`;
+}
+
+function render(){
+  const progMap={step1:33,step2:66,step3:100};
+  const pct=progMap[S.screen]||0;
+  const pf=document.getElementById('prog-fill');
+  if(pf)pf.style.width=pct+'%';
+  const sh=document.getElementById('step-hdr');
+  if(sh)sh.innerHTML=renderStepHdr();
+  const screens={
+    step1:renderStep1,step2:renderStep2,step3:renderStep3,
+    pending:renderPending,success:renderSuccess,
+    soft_reject:renderSoftReject,hard_reject:renderHardReject,
+    email_sent:renderEmailSent
+  };
+  const fn=screens[S.screen]||renderStep1;
+  document.getElementById('app').innerHTML=fn();
+  const mr=document.getElementById('modal-root');
+  if(S.modal==='otp')mr.innerHTML=mOtp();
+  else if(S.modal==='auth')mr.innerHTML=mAuth();
+  else if(S.modal==='pin')mr.innerHTML=mPin();
+  else if(S.modal==='tnc')mr.innerHTML=mTnc();
+  else if(S.modal==='save')mr.innerHTML=mSaveLater();
+  else mr.innerHTML='';
+  const nf=document.getElementById('nav-foot');
+  if(nf)nf.innerHTML=renderNavFoot();
+  if(S.modal==='pin'){setTimeout(()=>{const i=document.getElementById('pin-input');if(i)i.focus();},80);}
+}
+
+render();
+
+<\/script>
+</body>
+</html>
+
+</script>
+
+</body>
+</html>
