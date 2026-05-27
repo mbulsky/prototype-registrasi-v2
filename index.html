@@ -595,10 +595,10 @@ function initPrototype() {
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{font-family:'DM Sans',-apple-system,sans-serif;background:#EEF0F4;min-height:100vh;color:#111827}
+body{font-family:'DM Sans',-apple-system,sans-serif;background:#F4F6F9;min-height:100vh;color:#191C21}
 
 /* Header */
-.hdr{position:sticky;top:0;z-index:200;background:#fff;border-bottom:1px solid #E5E7EB;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.hdr{position:sticky;top:0;z-index:200;background:#fff;border-bottom:1px solid #E5E7EB;box-shadow:0 1px 2px rgba(25,28,33,.05),0 1px 3px rgba(25,28,33,.10)}
 .hdr-bar{max-width:576px;margin:0 auto;display:flex;align-items:center;height:56px;padding:0 24px;gap:16px}
 .hdr-logo{height:26px;display:block}
 .hdr-spacer{flex:1}
@@ -626,14 +626,14 @@ body{font-family:'DM Sans',-apple-system,sans-serif;background:#EEF0F4;min-heigh
 main{max-width:576px;margin:0 auto;padding:24px 24px 100px}
 
 /* Card */
-.card{background:#fff;border:1px solid #E5E7EB;border-radius:6px;margin-bottom:16px;overflow:hidden}
+.card{background:#fff;border:1px solid #E5E7EB;border-radius:12px;margin-bottom:16px;overflow:hidden;box-shadow:0 1px 2px rgba(25,28,33,.04)}
 .ch{display:flex;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid #F3F4F6}
-.ch-ico{width:34px;height:34px;border-radius:9px;background:#FEF2F2;display:flex;align-items:center;justify-content:center;font-size:17px;color:#E42E2C;flex-shrink:0}
+.ch-ico{width:36px;height:36px;border-radius:8px;background:#FEF2F2;display:flex;align-items:center;justify-content:center;font-size:18px;color:#E42E2C;flex-shrink:0}
 .ch-ico.blue{background:#EFF6FF;color:#1D4ED8}
 .ch-ico.green{background:#ECFDF5;color:#059669}
 .ch-ico.gray{background:#F4F6F8;color:#6B7280}
 .ch-ico.warn{background:#FFFBEB;color:#D97706}
-.ch-t{font-size:13px;font-weight:600;color:#111827}
+.ch-t{font-size:13px;font-weight:600;color:#191C21}
 .ch-sub{font-size:11px;color:#9CA3AF;margin-top:1px}
 .cb{padding:16px 20px}
 .cb-sm{padding:12px 20px}
@@ -648,10 +648,10 @@ main{max-width:576px;margin:0 auto;padding:24px 24px 100px}
 /* Fields */
 .fld{margin-bottom:12px}
 .fld:last-child{margin-bottom:0}
-.fl{display:block;font-size:12px;font-weight:500;color:#4B5563;margin-bottom:5px}
+.fl{display:block;font-size:12px;font-weight:500;color:#374151;margin-bottom:5px}
 .fl-req{color:#E42E2C;margin-left:1px}
 .fi-w{position:relative}
-.fi{width:100%;height:36px;padding:0 12px;border:1.5px solid #D1D5DB;border-radius:4px;font-family:inherit;font-size:13.5px;color:#111827;background:#fff;outline:none;transition:border-color .15s,box-shadow .15s;-webkit-appearance:none}
+.fi{width:100%;height:40px;padding:0 12px;border:1.5px solid #D1D5DB;border-radius:8px;font-family:inherit;font-size:14px;color:#191C21;background:#fff;outline:none;transition:border-color .15s,box-shadow .15s;-webkit-appearance:none}
 .fi:focus{border-color:#008AFF;box-shadow:0 0 0 3px rgba(0,138,255,.12)}
 .fi::placeholder{color:#9CA3AF}
 .fi.ok{background:#F9FAFB;border-color:#BEEDCA}
@@ -670,7 +670,7 @@ select.fi{-webkit-appearance:none}
 .verified-badge{display:inline-flex;align-items:center;gap:4px;color:#059669;font-size:12px;font-weight:500;margin-top:6px}
 
 /* PrivyID verified card */
-.privy-card{background:#F0FDF4;border:1px solid #A7F3D0;border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;margin-top:10px}
+.privy-card{background:#F0FDF4;border:1px solid #A7F3D0;border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;margin-top:10px}
 .privy-av{width:38px;height:38px;border-radius:50%;background:#E42E2C;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
 .privy-info{flex:1}
 .privy-name{font-size:13px;font-weight:600;color:#111827}
@@ -679,7 +679,7 @@ select.fi{-webkit-appearance:none}
 .privy-change{font-size:12px;color:#008AFF;cursor:pointer;text-decoration:underline;margin-top:6px;display:inline-block}
 
 /* Director question */
-.dir-q{background:#F9FAFB;border:1.5px solid #E5E7EB;border-radius:10px;padding:14px;margin-top:4px}
+.dir-q{background:#F4F6F9;border:1.5px solid #E5E7EB;border-radius:12px;padding:16px;margin-top:4px}
 .dir-q-t{font-size:13px;font-weight:600;color:#111827;margin-bottom:3px}
 .dir-q-s{font-size:12px;color:#6B7280;margin-bottom:12px;line-height:1.4}
 .dir-opts{display:flex;gap:8px}
@@ -691,13 +691,13 @@ select.fi{-webkit-appearance:none}
 .dir-opt.sel .dir-rb-dot{display:block}
 
 /* Kuasa section */
-.kuasa{background:#FFFBEB;border:1.5px dashed #FCD34D;border-radius:10px;padding:14px;margin-top:12px}
+.kuasa{background:#FFFBEB;border:1.5px dashed #FCD34D;border-radius:12px;padding:16px;margin-top:12px}
 .kuasa-t{font-size:13px;font-weight:600;color:#92400E;margin-bottom:4px;display:flex;align-items:center;gap:6px}
 .kuasa-s{font-size:12px;color:#92400E;opacity:.8;margin-bottom:12px}
 
 /* Upload areas */
-.up-area{border:1.5px dashed #D1D5DB;border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:all .15s;background:#fff}
-.up-area:hover{border-color:#9CA3AF;background:#F9FAFB}
+.up-area{border:1.5px dashed #D1D5DB;border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:all .2s ease-in-out;background:#fff}
+.up-area:hover{border-color:#9CA3AF;background:#F4F6F9}
 .up-area.done{border-color:#A7F3D0;background:#F0FDF4;border-style:solid}
 .up-ico{font-size:26px;color:#9CA3AF;margin-bottom:6px}
 .up-ico.done{color:#059669}
@@ -705,7 +705,7 @@ select.fi{-webkit-appearance:none}
 .up-fname{font-size:12.5px;font-weight:500;color:#059669;margin-top:4px}
 
 /* Alert */
-.al{border-radius:10px;padding:12px 14px;display:flex;gap:10px;margin-bottom:14px;border:1px solid;font-size:12.5px;line-height:1.5}
+.al{border-radius:8px;padding:12px 14px;display:flex;gap:10px;margin-bottom:14px;border:1px solid;font-size:12.5px;line-height:1.5}
 .al:last-child{margin-bottom:0}
 .al-i{font-size:15px;flex-shrink:0;margin-top:1px}
 .al-info{background:#EFF6FF;border-color:#BFDBFE;color:#1D4ED8}
@@ -728,7 +728,7 @@ select.fi{-webkit-appearance:none}
 .dur{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #F3F4F6}
 .dur:first-child{padding-top:0}
 .dur:last-child{border-bottom:none;padding-bottom:0}
-.dur-ico{width:36px;height:36px;border-radius:9px;background:#F4F6F8;display:flex;align-items:center;justify-content:center;font-size:18px;color:#6B7280;flex-shrink:0}
+.dur-ico{width:36px;height:36px;border-radius:8px;background:#F4F6F9;display:flex;align-items:center;justify-content:center;font-size:18px;color:#6B7280;flex-shrink:0}
 .dur-ico.ok{background:#ECFDF5;color:#059669}
 .dur-info{flex:1;min-width:0}
 .dur-name{font-size:13px;font-weight:500;color:#111827}
@@ -749,11 +749,11 @@ select.fi{-webkit-appearance:none}
 .sts-ok{background:#ECFDF5;color:#059669}
 .sts-pend{background:#FFFBEB;color:#D97706}
 .sts-err{background:#FEF2F2;color:#E42E2C}
-.sts-t{font-size:22px;font-weight:700;color:#111827;margin-bottom:8px;line-height:1.3}
+.sts-t{font-size:22px;font-weight:700;color:#191C21;margin-bottom:8px;line-height:1.3}
 .sts-s{font-size:13.5px;color:#6B7280;line-height:1.65;margin-bottom:28px}
 
 /* Enterprise card */
-.ent-card{background:linear-gradient(135deg,#E42E2C,#B82020);border-radius:14px;padding:18px;color:#fff;margin-bottom:16px;display:flex;align-items:center;gap:14px}
+.ent-card{background:linear-gradient(135deg,#E42E2C,#B82020);border-radius:16px;padding:20px;color:#fff;margin-bottom:16px;display:flex;align-items:center;gap:14px;box-shadow:0 4px 6px rgba(228,46,44,.18)}
 .ent-ico{font-size:36px;opacity:.9}
 .ent-lbl{font-size:11px;opacity:.7;font-weight:500}
 .ent-val{font-size:15px;font-weight:700;margin-top:3px}
@@ -761,43 +761,43 @@ select.fi{-webkit-appearance:none}
 .ent-badge{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap}
 
 /* Buttons */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:40px;padding:0 20px;border-radius:4px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .15s;-webkit-appearance:none;text-decoration:none;white-space:nowrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:40px;padding:0 20px;border-radius:8px;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:.2px;cursor:pointer;border:none;transition:all .2s ease-in-out;-webkit-appearance:none;text-decoration:none;white-space:nowrap}
 .full{width:100%}
 .btn-p{background:#E42E2C;color:#fff}
 .btn-p:hover{background:#C52220}
 .btn-p:disabled{background:#D1D5DB;color:#9CA3AF;cursor:not-allowed}
 .btn-o{background:transparent;color:#E42E2C;border:1.5px solid #E42E2C}
 .btn-o:hover{background:#FEF2F2}
-.btn-g{background:#F4F6F8;color:#374151;border:1.5px solid #E5E7EB}
-.btn-g:hover{background:#E5E7EB}
+.btn-g{background:#F4F6F9;color:#4B5563;border:1.5px solid #E5E7EB}
+.btn-g:hover{background:#E9ECF0}
 .btn-wa{background:#25D366;color:#fff}
 .btn-wa:hover{background:#20B85A}
 .btn-blue{background:#1D4ED8;color:#fff}
 .btn-blue:hover{background:#1E40AF}
-.btn-sm{height:32px;font-size:12.5px;border-radius:4px;padding:0 14px}
-.btn-xs{height:30px;font-size:11.5px;border-radius:7px;padding:0 12px}
+.btn-sm{height:32px;font-size:12.5px;border-radius:6px;padding:0 14px}
+.btn-xs{height:30px;font-size:11.5px;border-radius:6px;padding:0 12px}
 .brow{display:flex;gap:10px}
 .brow .btn{flex:1}
 
 /* EBS card */
-.ebs{background:linear-gradient(135deg,#1F3864,#2D5090);border-radius:6px;padding:16px 18px;display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.ebs{background:linear-gradient(135deg,#1F3864,#2D5090);border-radius:12px;padding:16px 18px;display:flex;align-items:center;gap:14px;margin-bottom:16px;box-shadow:0 4px 6px rgba(31,56,100,.12)}
 .ebs-info{flex:1}
 .ebs-t{font-size:13.5px;font-weight:700;color:#fff;margin-bottom:3px}
 .ebs-s{font-size:12px;color:rgba(255,255,255,.72);line-height:1.4}
 
 /* Save later */
-.save-later{display:flex;align-items:center;gap:10px;padding:13px 16px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;cursor:pointer;transition:all .15s;margin-bottom:16px}
-.save-later:hover{border-color:#D1D5DB;background:#F3F4F6}
+.save-later{display:flex;align-items:center;gap:10px;padding:13px 16px;background:#F4F6F9;border:1px solid #E5E7EB;border-radius:8px;cursor:pointer;transition:all .2s ease-in-out;margin-bottom:16px}
+.save-later:hover{border-color:#C8CDD6;background:#E9ECF0}
 .save-later-ico{font-size:20px;color:#6B7280;flex-shrink:0}
 .save-later-t{font-size:13px;font-weight:600;color:#374151}
 .save-later-s{font-size:11.5px;color:#9CA3AF;margin-top:1px}
 
 /* TnC checkbox */
-.tnc-row{display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:14px;border-radius:10px;background:#F9FAFB;border:1.5px solid #E5E7EB;transition:all .15s}
-.tnc-row:hover{border-color:#D1D5DB;background:#F3F4F6}
+.tnc-row{display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:14px;border-radius:8px;background:#F4F6F9;border:1.5px solid #E5E7EB;transition:all .2s ease-in-out}
+.tnc-row:hover{border-color:#C8CDD6;background:#E9ECF0}
 .tnc-row.chk{border-color:#A7F3D0;background:#F0FDF4}
 .tnc-row.err{border-color:#FECACA;background:#FEF2F2}
-.tnc-cb{width:18px;height:18px;border-radius:5px;border:2px solid #D1D5DB;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;background:#fff;transition:all .15s;pointer-events:none}
+.tnc-cb{width:18px;height:18px;border-radius:4px;border:2px solid #D1D5DB;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;background:#fff;transition:all .2s ease-in-out;pointer-events:none}
 .tnc-row.chk .tnc-cb{background:#059669;border-color:#059669;color:#fff;font-size:11px}
 .tnc-txt{font-size:12.5px;color:#374151;line-height:1.5;pointer-events:none;user-select:none}
 .tnc-link{color:#008AFF;font-weight:500;text-decoration:underline;cursor:pointer;pointer-events:auto}
@@ -808,9 +808,9 @@ select.fi{-webkit-appearance:none}
 
 /* Modal */
 .mov{position:fixed;inset:0;background:rgba(0,0,0,.48);backdrop-filter:blur(3px);z-index:400;display:flex;align-items:center;justify-content:center;padding:24px}
-.mbox{background:#fff;border-radius:16px;width:100%;max-width:500px;box-shadow:0 20px 60px rgba(0,0,0,.22);overflow:hidden;max-height:90vh;display:flex;flex-direction:column}
+.mbox{background:#fff;border-radius:16px;width:100%;max-width:500px;box-shadow:0 20px 40px -8px rgba(25,28,33,.25);overflow:hidden;max-height:90vh;display:flex;flex-direction:column}
 .mhd{padding:20px 24px 16px;border-bottom:1px solid #F3F4F6;flex-shrink:0}
-.mt{font-size:16px;font-weight:700;color:#111827;margin-bottom:3px}
+.mt{font-size:16px;font-weight:700;color:#191C21;margin-bottom:3px}
 .ms{font-size:13px;color:#6B7280}
 .mbd{padding:20px 24px;overflow-y:auto;flex:1}
 .mft{padding:14px 24px;border-top:1px solid #F3F4F6;display:flex;gap:10px;justify-content:flex-end;flex-shrink:0}
@@ -830,7 +830,7 @@ select.fi{-webkit-appearance:none}
 
 /* OTP */
 .otp-row{display:flex;gap:8px;justify-content:center;margin-bottom:20px}
-.otp-box{width:48px;height:56px;border:1.5px solid #D1D5DB;border-radius:10px;text-align:center;font-size:22px;font-weight:700;font-family:inherit;color:#111827;background:#fff;outline:none;transition:border-color .15s}
+.otp-box{width:48px;height:56px;border:1.5px solid #D1D5DB;border-radius:8px;text-align:center;font-size:22px;font-weight:700;font-family:inherit;color:#191C21;background:#fff;outline:none;transition:border-color .15s}
 .otp-box:focus{border-color:#008AFF}
 .otp-box.f{border-color:#E42E2C;background:#FFF8F8}
 
@@ -953,7 +953,7 @@ id:{
   emailK:'Email perusahaan',emailKPh:'info@perusahaan.com',
   telK:'Nomor telepon perusahaan',telKPh:'+62 21 XXXX XXXX',
   alamL:'Alamat perusahaan',alamPh:'Jl. ...',
-  npwpL:'Nomor NPWP perusahaan',npwpPh:'XX.XXX.XXX.X-XXX.XXX',
+  npwpL:'Nomor NPWP perusahaan',npwpPh:'Masukkan nomor NPWP (15-16 digit)',
   nibL:'Nomor Induk Berusaha (NIB)',nibPh:'Masukkan 13 digit NIB',
   docsT:'Unggah Dokumen',
   dNPWP:'Dokumen NPWP',dAkta:'Akta pendirian perusahaan',
@@ -975,7 +975,7 @@ id:{
   // Validation
   eReq:'Wajib diisi',eEmail:'Format email tidak valid',
   ePhone:'Format nomor tidak valid (contoh: +62 812 3456 7890)',
-  eNPWP:'Format NPWP tidak valid (contoh: 01.234.567.8-901.000)',
+  eNPWP:'Nomor NPWP tidak valid (15-16 digit angka)',
   eNIB:'NIB harus 13 digit angka',eTnC:'Anda harus menyetujui Syarat & Ketentuan',
   ePrivy:'PrivyID harus diverifikasi terlebih dahulu',
   eDoc:'Dokumen ini wajib diunggah',eMin:'Minimal 3 karakter',
@@ -1028,7 +1028,7 @@ en:{
   emailK:'Company email',emailKPh:'info@company.com',
   telK:'Company phone number',telKPh:'+62 21 XXXX XXXX',
   alamL:'Company address',alamPh:'Street address...',
-  npwpL:'Company NPWP number',npwpPh:'XX.XXX.XXX.X-XXX.XXX',
+  npwpL:'Company NPWP number',npwpPh:'Enter NPWP number (15-16 digits)',
   nibL:'Business Registration Number (NIB)',nibPh:'Enter 13-digit NIB',
   docsT:'Upload Documents',
   dNPWP:'NPWP Document',dAkta:'Company deed of establishment',
@@ -1049,7 +1049,7 @@ en:{
   otpVerify:'Verify',otpCancel:'Cancel',
   eReq:'Required',eEmail:'Invalid email format',
   ePhone:'Invalid phone format (e.g. +62 812 3456 7890)',
-  eNPWP:'Invalid NPWP format (e.g. 01.234.567.8-901.000)',
+  eNPWP:'Invalid NPWP number (15-16 digits)',
   eNIB:'NIB must be 13 digits',eTnC:'You must agree to the Terms & Conditions',
   ePrivy:'PrivyID must be verified first',
   eDoc:'This document is required',eMin:'Minimum 3 characters',
@@ -1076,7 +1076,7 @@ en:['Information Technology','Banking','Non-bank Financial','Insurance','Healthc
 };
 
 const OCR_DUMMY={
-  npwp:'01.234.567.8-901.000',
+  npwp:'012345678901000',
   perus:'PT TEKNOLOGI INOVASI INDONESIA',
   alamat:'Jl. Jend. Sudirman Kav. 1, Jakarta Pusat 10220',
   file:'npwp_pt.pdf'
@@ -1088,7 +1088,7 @@ const DEMO={
   privyid:'WM0905',jabatan:'Chief Technology Officer',
   emailK:'info@techcorp.id',telK:'+622155512345',
   alamat:'Jl. Jend. Sudirman Kav. 55, Jakarta Selatan 12190',
-  npwp:'01.234.567.8-901.000',nib:'1234567890123',
+  npwp:'012345678901000',nib:'1234567890123',
   docNPWP:'NPWP-Perusahaan.pdf',docAkta:'Akta-Pendirian.pdf',
   docSK:'SK-Badan-Usaha.pdf',docNIB:'NIB-Perusahaan.pdf',docKuasa:'Surat-Kuasa.pdf'
 };
@@ -1111,7 +1111,7 @@ let S={
   signState:'idle',signedTs:'',signed:false
 };
 let ERR={};
-const NPWP_REGISTERED_DEMO='12.345.678.9-012.345';
+const NPWP_REGISTERED_DEMO='123456789012345';
 
 /* ── Utils ── */
 function t(k){return (T[lang]&&T[lang][k])||T.id[k]||k}
@@ -1125,7 +1125,7 @@ function v(key){
 /* ── Validation ── */
 function validateEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)}
 function validatePhone(p){const d=p.replace(/\D/g,'');return (d.startsWith('62')||d.startsWith('08'))&&d.length>=10&&d.length<=14}
-function validateNPWP(n){return /^\d{2}\.\d{3}\.\d{3}\.\d-\d{3}\.\d{3}$/.test(n)||/^\d{15,16}$/.test(n.replace(/\D/g,''))}
+function validateNPWP(n){return /^\d{15,16}$/.test(n.trim())}
 function validateNIB(n){return /^\d{13}$/.test(n.replace(/\s/g,''))}
 
 function validateStep1(){
@@ -1293,9 +1293,10 @@ function renderStep1(){
       <p style="font-size:12px;color:#6B7280;margin-top:10px;line-height:1.55">${lang==='id'?'Dengan mendaftar, kamu menyetujui penggunaan tanda tangan elektronik sesuai UU ITE dan regulasi PSrE yang berlaku.':'By registering, you agree to the use of electronic signatures in accordance with the applicable ITE Law and PSrE regulations.'}</p>
     </div>
   </div>
-  <button class="btn btn-p full" onclick="validateAndNext('step1')" style="margin-bottom:16px">
+  <button class="btn btn-p full" onclick="validateAndNext('step1')" style="margin-bottom:20px">
     ${t('nxt')} <i class="ti ti-arrow-right"></i>
   </button>
+  <div style="border-top:1px solid #F3F4F6;margin-bottom:20px"></div>
   ${ebsCard()}`;
 }
 
@@ -1382,7 +1383,7 @@ function renderStep2(){
     <div class="cb">
       ${privySec}
       ${S.privyVerified?renderNpwpOcr():''}
-      ${F('npwp',t('npwpL'),t('npwpPh'),'text',true,`Format: XX.XXX.XXX.X-XXX.XXX${S.autofilled?'':' · <span style="color:#9CA3AF;font-size:10.5px">Demo sudah terdaftar: 12.345.678.9-012.345</span>'}`,'checkNpwpRegistered()')}
+      ${F('npwp',t('npwpL'),t('npwpPh'),'text',true,`15-16 digit angka${S.autofilled?'':' · <span style="color:#9CA3AF;font-size:10.5px">Demo terdaftar: 123456789012345</span>'}`,'checkNpwpRegistered()')}
       ${renderNpwpCheck()}
       ${F('alamat',t('alamL'),t('alamPh'),'text',true)}
       ${dirOpts}
@@ -1409,9 +1410,10 @@ function renderStep2(){
     <div><div class="save-later-t">${t('saveLaterT')}</div><div class="save-later-s">${t('saveLaterS')}</div></div>
     <i class="ti ti-chevron-right" style="color:#D1D5DB;font-size:18px"></i>
   </div>
-  <button class="btn btn-p full" onclick="validateAndNext('step2')" style="margin-bottom:16px;height:48px;font-size:14.5px;font-weight:700">
+  <button class="btn btn-p full" onclick="validateAndNext('step2')" style="margin-bottom:20px;height:48px;font-size:14.5px;font-weight:700">
     <i class="ti ti-arrow-right"></i> ${lang==='id'?'Lanjutkan':'Continue'}
   </button>
+  <div style="border-top:1px solid #F3F4F6;margin-bottom:20px"></div>
   ${ebsCard()}`;
 }
 
@@ -1742,7 +1744,6 @@ function renderPending(){
       <button style="flex:1;font-size:11.5px;height:36px;padding:0 12px;border:1.5px solid #FECACA;border-radius:4px;background:#FEF2F2;color:#E42E2C;cursor:pointer;font-family:inherit;font-weight:500" onclick="goTo('hard_reject')">${t('simHardRej')}</button>
     </div>
     <button onclick="goTo('success')" style="font-size:11.5px;color:#6B7280;border:1px dashed #D1D5DB;border-radius:4px;padding:6px 16px;background:transparent;cursor:pointer;font-family:inherit">${t('simApprove')} →</button>
-    <div style="font-size:11.5px;color:#6B7280;margin-top:2px">${lang==='id'?'Mengalami kendala? <a href="#" onclick="return false" style="color:#008AFF;font-weight:500">Hubungi tim Privy</a>':'Having issues? <a href="#" onclick="return false" style="color:#008AFF;font-weight:500">Contact Privy team</a>'}</div>
   </div>
   ${ebsCard()}`;
 }

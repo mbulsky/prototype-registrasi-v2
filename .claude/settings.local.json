@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:privy-open-source.github.io)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(open /Users/PID-PRODUCT-WM0905/prototype-registrasi-v2/index.html)"
+    ]
+  }
+}
