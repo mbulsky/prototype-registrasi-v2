@@ -462,69 +462,88 @@ function doLogin(){
     </ul>
   </div>
   <div class="fc-img-wrap" style="padding:24px;overflow-x:auto">
-    <div class="mermaid" style="min-width:700px">
+    <div class="mermaid" style="min-width:760px">
 flowchart TD
     LOGIN(["🔐&nbsp;Login
 Passcode: WM0905"])
 
     S1["<b>Step 1 — Informasi Dasar</b>
-Nama · Email · HP
-Nama Perusahaan · Sektor Bisnis
-☑ Setuju Syarat &amp; Ketentuan"]
-
-    S2["<b>Step 2 — Data Perusahaan</b>
 ─────────────────────────
-🪪&nbsp; A: Verifikasi PrivyID
-📋&nbsp; B: Jabatan · Email Perusahaan
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Telepon · Alamat · NPWP · NIB
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ OCR Upload NPWP (opsional)
-📁&nbsp; C: Upload Dokumen
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NPWP · Akta · SK · NIB
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ Surat Kuasa (jika bukan direktur)"]
+👤&nbsp;Nama lengkap · Email · Nomor HP
+🏢&nbsp;Nama Perusahaan · Sektor Bisnis
+🌐&nbsp;Website perusahaan (opsional)
+☑&nbsp;Syarat &amp; Ketentuan Layanan Enterprise Suite"]
+
+    S2A["<b>Step 2A — Verifikasi PrivyID</b>
+🪪&nbsp;Input PrivyID
+✅&nbsp;Verifikasi akun Privy"]
+
+    S2B{"NPWP
+sudah terdaftar
+di Privy?"}
+
+    EBS["📞&nbsp;<b>Arahkan ke Tim EBS</b>
+NPWP sudah terdaftar di sistem Privy
+Hubungi EBS untuk aktivasi akun
+atau informasi lebih lanjut"]
+
+    S2C["<b>Step 2B — Data &amp; Dokumen Perusahaan</b>
+─────────────────────────
+📋&nbsp;NPWP (15–16 digit) + Cek registrasi
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Alamat · Jabatan · Email · Telepon · NIB
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ OCR Upload NPWP (isi otomatis via scan)
+👥&nbsp;Penandatangan: Direktur Utama
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;atau pihak yang berwenang mewakili perusahaan
+📁&nbsp;Upload Dokumen:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NPWP · Dokumen Pendirian Usaha
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SK Pengesahan Pendirian Usaha · NIB
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ Surat Kuasa (jika bukan pihak berwenang)"]
 
     SAVE["💾&nbsp;Simpan &amp; Lanjutkan Nanti
-(kirim link ke email)"]
+(link dikirim ke email, berlaku 7 hari)"]
     EMAILSENT["📧&nbsp;Email Terkirim
-Link berlaku 7 hari
-→ Lanjutkan kapan saja"]
+Klik link untuk lanjutkan kapan saja"]
 
     S3["<b>Step 3 — Review &amp; Tanda Tangan</b>
 ─────────────────────────
-📋&nbsp;Ringkasan data
-📄&nbsp;Preview dokumen
-✍️&nbsp;Taruh tanda tangan
-🔒&nbsp;Auth Modal: PIN / OTP / WA / SMS
-⌨️&nbsp;PIN Modal: 6-digit via keyboard
-✅&nbsp;Dokumen ditandatangani"]
+📋&nbsp;Ringkasan data pendaftar &amp; perusahaan
+📄&nbsp;Preview dokumen perjanjian layanan
+✍️&nbsp;Taruh tanda tangan pada dokumen
+🔒&nbsp;Pilih metode autentikasi:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PIN 6-digit · OTP Email · WhatsApp · SMS
+✅&nbsp;Dokumen ditandatangani secara elektronik"]
 
     SUBMIT["📤&nbsp;Submit Permohonan"]
 
     PENDING["⏳&nbsp;<b>Permohonan Sedang Diproses</b>
 ID Registrasi + tombol salin
 4-step progress tracker
-Notifikasi via email"]
+Notifikasi status via email"]
 
     SOFT["⚠️&nbsp;<b>Soft Reject</b>
-Kartu 1: Alasan penolakan
-(NPWP + Akta — detail per item)
-Kartu 2: Upload ulang
-hanya file yang ditolak"]
+Alasan penolakan per item dokumen
+(NPWP · Dokumen Pendirian · SK · NIB)
+Upload ulang hanya file yang ditolak
+→ Kirim ulang permohonan"]
 
     HARD["🚫&nbsp;<b>Hard Reject</b>
-3 alasan final spesifik
-(NIK/Dukcapil · OSS/NIB · Akta)
+Penolakan final — 3 alasan spesifik
+(NIK/Dukcapil · OSS/NIB · Dokumen Legal)
 Keputusan bersifat final"]
 
     OK["🎉&nbsp;<b>Enterprise Aktif</b>
-Undang karyawan
+Undang anggota tim
 Buat dokumen pertama
 Atur enterprise seal
 → Mulai gunakan Privy Enterprise"]
 
     LOGIN --> S1
-    S1 --"Selanjutnya"--> S2
-    S2 --"Simpan &amp; Lanjutkan Nanti"--> SAVE --> EMAILSENT
-    S2 --"Simpan &amp; Lanjutkan"--> S3
+    S1 --"Selanjutnya"--> S2A
+    S2A --"PrivyID terverifikasi"--> S2B
+    S2B --"Ya → Hubungi EBS"--> EBS
+    S2B --"Tidak → Lanjut isi data"--> S2C
+    S2C --"Simpan &amp; Lanjutkan Nanti"--> SAVE --> EMAILSENT
+    S2C --"Lanjutkan"--> S3
     S3 --"Submit
 (setelah ditandatangani)"--> SUBMIT --> PENDING
     PENDING --"Soft Reject"--> SOFT
@@ -536,7 +555,9 @@ Permohonan"--> PENDING
 
     classDef login fill:#1F3864,color:#fff,stroke:#1F3864
     classDef step fill:#EFF6FF,color:#1E3A5F,stroke:#93C5FD,text-align:left
-    classDef save fill:#F9FAFB,color:#374151,stroke:#D1D5DB
+    classDef decision fill:#FFFBEB,color:#92400E,stroke:#F59E0B
+    classDef ebs fill:#1F3864,color:#fff,stroke:#2D5090
+    classDef save fill:#F4F6F9,color:#374151,stroke:#D1D5DB
     classDef submit fill:#FFFBEB,color:#B45309,stroke:#FDE68A
     classDef pending fill:#DBEAFE,color:#1E3A5F,stroke:#3B82F6
     classDef soft fill:#FFFBEB,color:#92400E,stroke:#F59E0B
@@ -544,7 +565,9 @@ Permohonan"--> PENDING
     classDef success fill:#ECFDF5,color:#065F46,stroke:#34D399
 
     class LOGIN login
-    class S1,S2,S3 step
+    class S1,S2A,S2C,S3 step
+    class S2B decision
+    class EBS ebs
     class SAVE,EMAILSENT save
     class SUBMIT submit
     class PENDING pending
