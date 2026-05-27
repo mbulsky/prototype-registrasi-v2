@@ -448,11 +448,13 @@ function doLogin(){
     <h3>✓ Perubahan dari versi awal:</h3>
     <ul>
       <li>✅ TnC dipindah → Step 1</li>
+      <li>🌐 Field website perusahaan (opsional) di Step 1</li>
       <li>🗑️ Company size dihapus</li>
       <li>🪪 PrivyID masuk → Step 2</li>
-      <li>📄 OCR NPWP inline setelah field Telepon</li>
-      <li>⌨️ PIN input via keyboard (no dialpad)</li>
-      <li>🪟 Auth modal → bottom sheet + blur backdrop</li>
+      <li>📄 OCR NPWP + No NPWP + Alamat → setelah PrivyID</li>
+      <li>🔍 Pengecekan NPWP terdaftar → arahkan ke EBS</li>
+      <li>⌨️ PIN input via keyboard + dot visual</li>
+      <li>🪟 Auth modal → tengah layar</li>
       <li>⏳ Pending screen diperbarui (ID registrasi + 4-step progress)</li>
       <li>⚠️ Soft reject → 2 kartu terpisah (alasan + upload fokus)</li>
       <li>🚫 Hard reject → 3 alasan spesifik + tombol "Daftar Ulang"</li>
@@ -824,6 +826,8 @@ select.fi{-webkit-appearance:none}
 .tnc-body-scroll strong{color:#111827}
 .tnc-scroll-hint{padding:4px 24px 8px;text-align:right;font-size:11.5px;color:#9CA3AF;display:flex;align-items:center;justify-content:flex-end;gap:4px;flex-shrink:0}
 
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
 /* OTP */
 .otp-row{display:flex;gap:8px;justify-content:center;margin-bottom:20px}
 .otp-box{width:48px;height:56px;border:1.5px solid #D1D5DB;border-radius:10px;text-align:center;font-size:22px;font-weight:700;font-family:inherit;color:#111827;background:#fff;outline:none;transition:border-color .15s}
@@ -859,6 +863,7 @@ select.fi{-webkit-appearance:none}
 .wact:hover{background:rgba(255,255,255,.14)}
 .wact i{font-size:13px}
 .wg{color:#6EE7B7}
+.wy{color:#FDE68A}
 .wr{color:#FCA5A5}
 
 /* Dev mode */
@@ -911,7 +916,8 @@ body.dev-mode *:not(.wb-hud):not(.wb-hud *):not(.wb):not(.wb *){cursor:crosshair
       <button class="wbtn" id="wb-dev" onclick="wbSetMode('dev')"><i class="ti ti-code"></i> Dev</button>
     </div>
     <div class="wb-sep"></div>
-    <button class="wact wg" onclick="doAutofill()"><i class="ti ti-wand"></i> Autofill</button>
+    <button class="wact wg" onclick="doAutofill('ok')" title="Autofill: NPWP belum terdaftar"><i class="ti ti-wand"></i> Autofill</button>
+    <button class="wact wy" onclick="doAutofill('reg')" title="Autofill: NPWP sudah terdaftar di Privy"><i class="ti ti-wand"></i> Terdaftar</button>
     <button class="wact wr" onclick="doReset()"><i class="ti ti-refresh"></i> Reset</button>
   </div>
 </div>
@@ -929,6 +935,7 @@ id:{
   hp:'Nomor handphone',hpPh:'+62 812 XXXX XXXX',
   perus:'Nama perusahaan',perusPh:'PT / CV / Yayasan...',
   sektor:'Sektor bisnis',sektorPh:'Pilih sektor bisnis',
+  website:'Website perusahaan',websitePh:'https://www.perusahaan.com',
   tncT:'Syarat & Ketentuan',tncSub:'Baca dan setujui ketentuan layanan Privy Enterprise.',
   tncChk:'Saya telah membaca dan menyetujui ',tncLink:'Syarat & Ketentuan',
   tncAnd:' serta ',tncPriv:'Kebijakan Privasi',tncEnd:' Privy Enterprise.',
@@ -1003,6 +1010,7 @@ en:{
   hp:'Phone number',hpPh:'+62 812 XXXX XXXX',
   perus:'Company name',perusPh:'PT / CV / Foundation...',
   sektor:'Business sector',sektorPh:'Select business sector',
+  website:'Company website',websitePh:'https://www.company.com',
   tncT:'Terms & Conditions',tncSub:'Read and agree to the Privy Enterprise service terms.',
   tncChk:'I have read and agree to the ',tncLink:'Terms & Conditions',
   tncAnd:' and ',tncPriv:'Privacy Policy',tncEnd:' of Privy Enterprise.',
@@ -1088,24 +1096,31 @@ const DEMO={
 /* ── State ── */
 let lang='id';
 let S={
-  screen:'step1',modal:null,otpFor:null,pin:'',tncScrolled:false,
-  autofilled:false,
+  screen:'step1',modal:null,otpFor:null,pin:'',tncScrolled:false,authMethod:'pin',
+  autofilled:false,autofillMode:'ok',
   // Step 1
-  nama:'',email:'',hp:'',perus:'',sektor:'',tncAgreed:false,
+  nama:'',email:'',hp:'',perus:'',sektor:'',website:'',tncAgreed:false,
   // Step 2
   privyid:'',privyVerified:false,privyChecking:false,isDirector:true,
   jabatan:'',emailK:'',
   telK:'',alamat:'',npwp:'',nib:'',
   docs:{npwp:null,akta:null,sk:null,nib:null,kuasa:null},
+  npwpCheckState:null,
   // OCR
   npwpOcrState:null,npwpOcrFile:null,ocrFilled:[],
   signState:'idle',signedTs:'',signed:false
 };
 let ERR={};
+const NPWP_REGISTERED_DEMO='12.345.678.9-012.345';
 
 /* ── Utils ── */
 function t(k){return (T[lang]&&T[lang][k])||T.id[k]||k}
-function v(key){return S.autofilled?(key==='sektor'?DEMO.sektor[lang]:DEMO[key]||''):S[key]||''}
+function v(key){
+  if(!S.autofilled)return S[key]||'';
+  if(key==='sektor')return DEMO.sektor[lang];
+  if(key==='npwp'&&S.autofillMode==='reg')return NPWP_REGISTERED_DEMO;
+  return DEMO[key]||'';
+}
 
 /* ── Validation ── */
 function validateEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)}
@@ -1161,16 +1176,17 @@ function isDataComplete(){return S.privyVerified&&!!(v('jabatan')||S.jabatan)&&!
 function isDocsComplete(){return !!(S.docs.npwp&&S.docs.akta&&S.docs.sk&&S.docs.nib&&(S.isDirector||S.docs.kuasa));}
 
 /* ── HTML Helpers ── */
-function F(id,lbl,ph,type,req=true,hint=''){
+function F(id,lbl,ph,type,req=true,hint='',onblurFn=''){
   const val=S.autofilled?v(id):(S[id]||'');
   const er=ERR[id];
   const isOcr=!S.autofilled&&S.ocrFilled&&S.ocrFilled.includes(id);
   const cls=`fi${isOcr?' ocr-fill':(val?' ok':'')}${er?' err':''}`;
   const badge=isOcr?`<span class="ocr-badge">✓ Terisi dari NPWP</span>`:'';
+  const locked=id==='npwp'&&S.npwpOcrState==='success';
   return `<div class="fld">
     <label class="fl" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">${lbl}${req?`<span class="fl-req">*</span>`:''}${badge}</label>
     <div class="fi-w">
-      <input type="${type||'text'}" id="fi-${id}" class="${cls}" placeholder="${ph}" value="${val}" oninput="S['${id}']=this.value">
+      <input type="${type||'text'}" id="fi-${id}" class="${cls}${locked?' dis':''}" placeholder="${ph}" value="${val}" ${locked?'readonly':''} oninput="S['${id}']=this.value;if('${id}'==='npwp')S.npwpCheckState=null"${onblurFn?` onblur="${onblurFn}"`:''}>
     </div>
     ${hint?`<div class="fhint">${hint}</div>`:''}
     ${er?`<div class="ferr"><i class="ti ti-alert-circle"></i>${er}</div>`:''}
@@ -1263,6 +1279,7 @@ function renderStep1(){
       ${F('hp',t('hp'),t('hpPh'),'tel',true)}
       ${F('perus',t('perus'),t('perusPh'),'text',true)}
       ${FSel('sektor',t('sektor'),t('sektorPh'),sectors)}
+      ${F('website',t('website'),t('websitePh'),'url',false)}
     </div>
   </div>
   <div class="card">
@@ -1293,7 +1310,7 @@ function renderStep2(){
         </div>
         <div class="privy-vbadge"><i class="ti ti-shield-check"></i> ${t('verified')}</div>
       </div>
-      <div><span class="privy-change" onclick="S.privyVerified=false;S.privyid='';S.npwpOcrState=null;S.ocrFilled=[];render()">${t('changePrivy')}</span></div>`
+      <div><span class="privy-change" onclick="S.privyVerified=false;S.privyid='';S.npwpOcrState=null;S.npwpCheckState=null;S.ocrFilled=[];render()">${t('changePrivy')}</span></div>`
     : `<div class="fi-w">
          <input type="text" id="fi-privyid" class="fi${S.privyid?' ok':''}${ERR.privyid?' err':''}" placeholder="${t('privyidPh')}" value="${S.privyid||''}" oninput="S.privyid=this.value;S.privyVerified=false" onblur="if(S.privyid&&!S.privyVerified&&!S.privyChecking)checkPrivyId()">
        </div>
@@ -1364,15 +1381,16 @@ function renderStep2(){
     <div class="ch"><div class="ch-t" style="flex:1">${t('s2t')}</div>${isDataComplete()?completeBadge():`<span class="bdr bdr-red">Wajib</span>`}</div>
     <div class="cb">
       ${privySec}
+      ${S.privyVerified?renderNpwpOcr():''}
+      ${F('npwp',t('npwpL'),t('npwpPh'),'text',true,`Format: XX.XXX.XXX.X-XXX.XXX${S.autofilled?'':' · <span style="color:#9CA3AF;font-size:10.5px">Demo sudah terdaftar: 12.345.678.9-012.345</span>'}`,'checkNpwpRegistered()')}
+      ${renderNpwpCheck()}
+      ${F('alamat',t('alamL'),t('alamPh'),'text',true)}
       ${dirOpts}
       ${al('info',`<i class="ti ti-wand"></i> ${t('nameInfo')}`)}
       ${FDis(t('penSign'),S.autofilled?DEMO.nama:(S.nama||'—'))}
       ${F('jabatan',t('jabL'),t('jabPh'),'text',true)}
       ${emailKField}
       ${F('telK',t('telK'),t('telKPh'),'tel',true)}
-      ${S.privyVerified?renderNpwpOcr():''}
-      ${F('npwp',t('npwpL'),t('npwpPh'),'text',true,'Format: XX.XXX.XXX.X-XXX.XXX')}
-      ${F('alamat',t('alamL'),t('alamPh'),'text',true)}
       ${F('nib',t('nibL'),t('nibPh'),'text',true,'13 digit angka')}
     </div>
   </div>
@@ -1392,7 +1410,7 @@ function renderStep2(){
     <i class="ti ti-chevron-right" style="color:#D1D5DB;font-size:18px"></i>
   </div>
   <button class="btn btn-p full" onclick="validateAndNext('step2')" style="margin-bottom:16px;height:48px;font-size:14.5px;font-weight:700">
-    <i class="ti ti-device-floppy"></i> ${lang==='id'?'Simpan & Lanjutkan':'Save & Continue'}
+    <i class="ti ti-arrow-right"></i> ${lang==='id'?'Lanjutkan':'Continue'}
   </button>
   ${ebsCard()}`;
 }
@@ -1468,18 +1486,66 @@ function triggerNpwpUpload(){
     if(!S.alamat){S.alamat=OCR_DUMMY.alamat;S.ocrFilled.push('alamat');}
     const npwpErr='doc'+('npwp').charAt(0).toUpperCase()+('npwp').slice(1);
     if(ERR[npwpErr])delete ERR[npwpErr];
+    S.npwpCheckState='checking';
     render();
+    setTimeout(()=>{S.npwpCheckState=S.npwp===NPWP_REGISTERED_DEMO?'registered':'ok';render();},1200);
   },2200);
 }
 
 function retryNpwpUpload(){
-  S.npwpOcrState=null;S.npwpOcrFile=null;
+  S.npwpOcrState=null;S.npwpOcrFile=null;S.npwpCheckState=null;
   S.ocrFilled=S.ocrFilled.filter(id=>id!=='perus'&&id!=='npwp'&&id!=='alamat');
   S.docs.npwp=null;render();
 }
 
 function continueManual(){
   S.npwpOcrState='manual';render();
+}
+
+/* ── NPWP Registration Check ── */
+function checkNpwpRegistered(){
+  const np=S.npwp;
+  if(!np||!validateNPWP(np)||S.autofilled)return;
+  S.npwpCheckState='checking';render();
+  setTimeout(()=>{
+    if(np===NPWP_REGISTERED_DEMO){
+      S.npwpCheckState='registered';
+    } else {
+      S.npwpCheckState='ok';
+    }
+    render();
+  },1400);
+}
+
+function renderNpwpCheck(){
+  if(S.autofilled&&S.autofillMode!=='reg')return '';
+  const st=S.npwpCheckState;
+  if(!st)return '';
+  if(st==='checking'){
+    return `<div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#6B7280;padding:6px 2px 4px;margin-top:-6px">
+      <i class="ti ti-loader-2" style="animation:spin .8s linear infinite;font-size:13px;color:#008AFF"></i>
+      ${lang==='id'?'Memeriksa NPWP di sistem Privy...':'Checking NPWP in Privy system...'}
+    </div>`;
+  }
+  if(st==='registered'){
+    return `<div style="border:1.5px solid #FECACA;border-radius:8px;padding:12px 14px;margin-top:-4px;margin-bottom:4px;background:#FEF2F2">
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">
+        <i class="ti ti-alert-circle" style="color:#E42E2C;font-size:18px;flex-shrink:0;margin-top:1px"></i>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#991B1B;margin-bottom:3px">${lang==='id'?'NPWP sudah terdaftar':'NPWP already registered'}</div>
+          <div style="font-size:12px;color:#7F1D1D;line-height:1.5">${lang==='id'?'Nomor NPWP ini sudah terdaftar di sistem Privy Enterprise. Silakan hubungi tim EBS kami untuk informasi lebih lanjut atau aktivasi akun Anda.':'This NPWP number is already registered in the Privy Enterprise system. Please contact our EBS team for more information or account activation.'}</div>
+        </div>
+      </div>
+      <a href="https://wa.me/6281234567890?text=Halo%20Tim%20EBS%2C%20NPWP%20perusahaan%20kami%20sudah%20terdaftar%20di%20Privy%20Enterprise.%20Mohon%20bantuannya." target="_blank" class="btn btn-wa full btn-sm" style="justify-content:center"><i class="ti ti-brand-whatsapp"></i> ${lang==='id'?'Hubungi Tim EBS':'Contact EBS Team'}</a>
+    </div>`;
+  }
+  if(st==='ok'){
+    return `<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#059669;padding:4px 2px;margin-top:-6px">
+      <i class="ti ti-circle-check" style="font-size:14px"></i>
+      ${lang==='id'?'NPWP tersedia dan belum terdaftar':'NPWP available and not yet registered'}
+    </div>`;
+  }
+  return '';
 }
 
 /* ── Barcode helper ── */
@@ -1836,50 +1902,43 @@ function mOtp(){
 }
 
 function mAuth(){
-  return `<div style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,0.45);backdrop-filter:blur(2px);display:flex;align-items:flex-end;justify-content:center" onclick="if(event.target===this){S.modal=null;render()}">
-    <div style="background:#fff;width:100%;max-width:576px;border-radius:20px 20px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.15)">
-      <div style="display:flex;justify-content:center;padding:12px 0 4px">
-        <div style="width:40px;height:4px;border-radius:2px;background:#D1D5DB"></div>
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px 14px;border-bottom:1px solid #F3F4F6">
+  let selMethod=S.authMethod||'pin';
+  function optHtml(id,icon,title,sub){
+    const sel=selMethod===id;
+    return `<div onclick="S.authMethod='${id}';render()" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;border:${sel?'2px solid #008AFF':'1.5px solid #E5E7EB'};background:${sel?'rgba(0,138,255,.05)':'#fff'};cursor:pointer;transition:all .15s">
+      <div style="width:36px;height:36px;border-radius:9px;background:${sel?'#DBEAFE':'#F4F6F8'};display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ${icon}" style="color:${sel?'#1D4ED8':'#6B7280'};font-size:17px"></i></div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:${sel?'700':'500'};color:#111827">${title}</div><div style="font-size:11.5px;color:#6B7280">${sub}</div></div>
+      <div style="width:20px;height:20px;border-radius:50%;border:2px solid ${sel?'#008AFF':'#D1D5DB'};background:${sel?'#008AFF':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0">${sel?'<i class="ti ti-check" style="color:#fff;font-size:9px"></i>':''}</div>
+    </div>`;
+  }
+  return `<div class="mov" onclick="if(event.target===this){S.modal=null;render()}">
+    <div class="mbox" style="max-width:420px">
+      <div class="mhd" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
         <div>
-          <div style="font-size:15px;font-weight:700;color:#111827">Metode autentikasi</div>
-          <div style="font-size:12px;color:#6B7280;margin-top:2px">Pilih metode untuk menandatangani dokumen</div>
+          <div class="mt">Metode autentikasi</div>
+          <div class="ms">Pilih metode untuk menandatangani dokumen</div>
         </div>
-        <button onclick="S.modal=null;render()" style="width:32px;height:32px;border-radius:50%;background:#F4F6F8;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-x" style="font-size:13px;color:#6B7280"></i></button>
+        <button onclick="S.modal=null;render()" style="width:32px;height:32px;border-radius:50%;background:#F4F6F8;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px"><i class="ti ti-x" style="font-size:13px;color:#6B7280"></i></button>
       </div>
-      <div style="margin:14px 20px 10px;display:flex;align-items:center;gap:8px;padding:8px 12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px">
-        <span style="font-size:11.5px;color:#1D4ED8;font-weight:500;display:flex;align-items:center;gap:4px"><i class="ti ti-shield-check" style="font-size:12px"></i> Ditandatangani dengan Privy — Mitra terpercaya BSrE</span>
+      <div class="mbd" style="padding-top:12px">
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;margin-bottom:14px">
+          <i class="ti ti-shield-check" style="color:#1D4ED8;font-size:14px;flex-shrink:0"></i>
+          <span style="font-size:11.5px;color:#1D4ED8;font-weight:500">Ditandatangani dengan Privy — Mitra terpercaya BSrE</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${optHtml('pin','ti-lock','PIN','6 digit PIN rahasia Anda')}
+          ${optHtml('email_otp','ti-mail','Email OTP','Kode OTP dikirim ke email')}
+          ${optHtml('wa','ti-brand-whatsapp','WhatsApp','Kode OTP via WhatsApp')}
+          ${optHtml('sms','ti-message','SMS OTP','Kode OTP dikirim via SMS')}
+        </div>
+        <label style="display:flex;align-items:center;gap:10px;margin-top:14px;cursor:pointer">
+          <input type="checkbox" style="width:16px;height:16px;accent-color:#008AFF;flex-shrink:0">
+          <span style="font-size:12.5px;color:#374151">Jadikan metode utama</span>
+        </label>
       </div>
-      <div style="padding:0 20px;display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
-        <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;border:2px solid #008AFF;background:rgba(0,138,255,.05)">
-          <div style="width:36px;height:36px;border-radius:8px;background:#DBEAFE;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-lock" style="color:#1D4ED8;font-size:16px"></i></div>
-          <div style="flex:1"><div style="font-size:13px;font-weight:600;color:#111827">PIN</div><div style="font-size:11.5px;color:#6B7280">6 digit PIN rahasia Anda</div></div>
-          <div style="width:20px;height:20px;border-radius:50%;background:#008AFF;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-check" style="color:#fff;font-size:10px"></i></div>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;border:1px solid #E5E7EB;background:#fff">
-          <div style="width:36px;height:36px;border-radius:8px;background:#F4F6F8;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-mail" style="color:#6B7280;font-size:16px"></i></div>
-          <div style="flex:1"><div style="font-size:13px;font-weight:500;color:#111827">Email OTP</div><div style="font-size:11.5px;color:#6B7280">Kode OTP dikirim ke email</div></div>
-          <div style="width:20px;height:20px;border-radius:50%;border:2px solid #D1D5DB;flex-shrink:0"></div>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;border:1px solid #E5E7EB;background:#fff">
-          <div style="width:36px;height:36px;border-radius:8px;background:#F4F6F8;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-brand-whatsapp" style="color:#6B7280;font-size:16px"></i></div>
-          <div style="flex:1"><div style="font-size:13px;font-weight:500;color:#111827">WhatsApp</div><div style="font-size:11.5px;color:#6B7280">Kode OTP via WhatsApp</div></div>
-          <div style="width:20px;height:20px;border-radius:50%;border:2px solid #D1D5DB;flex-shrink:0"></div>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;border:1px solid #E5E7EB;background:#fff">
-          <div style="width:36px;height:36px;border-radius:8px;background:#F4F6F8;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-message" style="color:#6B7280;font-size:16px"></i></div>
-          <div style="flex:1"><div style="font-size:13px;font-weight:500;color:#111827">SMS OTP</div><div style="font-size:11.5px;color:#6B7280">Kode OTP dikirim via SMS</div></div>
-          <div style="width:20px;height:20px;border-radius:50%;border:2px solid #D1D5DB;flex-shrink:0"></div>
-        </div>
-      </div>
-      <label style="display:flex;align-items:center;gap:10px;margin:0 20px 14px;cursor:pointer">
-        <input type="checkbox" style="width:16px;height:16px;accent-color:#008AFF;flex-shrink:0">
-        <span style="font-size:13px;color:#374151">Jadikan metode utama</span>
-      </label>
-      <div style="padding:0 20px 24px;display:flex;gap:8px">
+      <div class="mft">
         <button class="btn btn-g" style="flex:1" onclick="S.modal=null;render()">Batal</button>
-        <button style="flex:2;height:40px;background:#008AFF;color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px" onclick="openSignPin()"><i class="ti ti-check" style="font-size:15px"></i> Lanjutkan</button>
+        <button class="btn" style="flex:2;background:#008AFF;color:#fff;border:none" onclick="openSignPin()"><i class="ti ti-check"></i> Lanjutkan</button>
       </div>
     </div>
   </div>`;}
@@ -1907,39 +1966,50 @@ function mPin(){
   const pinFilled=f===6;
   const dots=[0,1,2,3,4,5].map(i=>{
     const on=i<f;
-    return `<div id="pin-dot-${i}" style="width:40px;height:40px;border-radius:8px;border:2px solid ${on?'#008AFF':'#E5E7EB'};background:${on?'#008AFF':'#F4F6F8'};display:flex;align-items:center;justify-content:center;transition:all .15s">${on?'<div style="width:8px;height:8px;border-radius:50%;background:#fff"></div>':''}</div>`;
+    const cur=i===f&&f<6;
+    return `<div id="pin-dot-${i}" onclick="focusPinInput()" style="width:44px;height:44px;border-radius:50%;border:2px solid ${on?'#008AFF':cur?'#008AFF':'#E5E7EB'};background:${on?'#008AFF':cur?'#EFF6FF':'#F4F6F8'};display:flex;align-items:center;justify-content:center;transition:all .18s;cursor:text">${on?'<div style="width:12px;height:12px;border-radius:50%;background:#fff"></div>':cur?'<div style="width:3px;height:20px;border-radius:2px;background:#008AFF;animation:blink 1s step-end infinite"></div>':''}</div>`;
   }).join('');
-  return `<div class="mov">
-    <div class="mbox">
-      <div class="mhd" style="position:relative;padding-left:48px">
+  return `<div class="mov" onclick="if(event.target===this){S.modal=null;S.pin='';render()}">
+    <div class="mbox" style="max-width:400px">
+      <div class="mhd" style="position:relative;padding-left:52px">
         <button onclick="S.modal='auth';S.pin='';render()" style="position:absolute;left:20px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;background:#F4F6F8;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center"><i class="ti ti-arrow-left" style="font-size:14px;color:#6B7280"></i></button>
-        <div class="mt">Konfirmasi</div>
+        <div class="mt">Masukkan PIN</div>
+        <div class="ms">6 digit PIN rahasia akun Privy Anda</div>
       </div>
       <div class="mbd">
-        <div style="margin-bottom:14px">
-          <div style="font-size:10.5px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Alasan</div>
-          <div style="font-size:13px;color:#111827;background:#F9FAFB;border-radius:6px;padding:10px 12px;line-height:1.45">Saya menyetujui dokumen ini atas nama ${perus}</div>
+        <div style="margin-bottom:16px">
+          <div style="font-size:10.5px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Alasan tanda tangan</div>
+          <div style="font-size:13px;color:#111827;background:#F9FAFB;border:1px solid #F3F4F6;border-radius:8px;padding:10px 12px;line-height:1.45">Saya menyetujui dokumen ini atas nama ${perus}</div>
         </div>
-        <div style="margin-bottom:14px">
-          <div style="font-size:10.5px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Catatan <span style="font-weight:400;text-transform:none">(opsional)</span></div>
-          <textarea style="width:100%;border:1px solid #D1D5DB;border-radius:4px;padding:8px 12px;font-family:inherit;font-size:13px;resize:none;outline:none;color:#111827" rows="2" placeholder="Tambahkan catatan…" maxlength="120"></textarea>
+        <div style="margin-bottom:18px">
+          <div style="font-size:10.5px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Catatan <span style="font-weight:400;text-transform:none">(opsional)</span></div>
+          <textarea style="width:100%;border:1.5px solid #E5E7EB;border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;resize:none;outline:none;color:#111827;transition:border-color .15s" rows="2" placeholder="Tambahkan catatan…" maxlength="120" onfocus="this.style.borderColor='#008AFF'" onblur="this.style.borderColor='#E5E7EB'"></textarea>
         </div>
         <div>
-          <div style="font-size:10.5px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">PIN</div>
-          <div style="display:flex;justify-content:center;gap:8px;margin-bottom:12px">${dots}</div>
-          <input type="password" id="pin-input" maxlength="6" inputmode="numeric" autocomplete="off"
-            style="width:100%;height:44px;border:1.5px solid #E5E7EB;border-radius:6px;text-align:center;font-size:22px;letter-spacing:8px;outline:none;font-family:inherit;background:#F9FAFB;display:block;box-sizing:border-box"
-            placeholder="······"
-            oninput="S.pin=this.value.replace(/[^0-9]/g,'').slice(0,6);this.value=S.pin;updatePinDots();if(S.pin.length===6)setTimeout(completeSigning,350)">
-          <div style="text-align:center;font-size:11.5px;color:#9CA3AF;margin-top:6px;margin-bottom:10px"><i class="ti ti-keyboard" style="font-size:12px"></i> Masukkan 6 digit PIN</div>
-          <div style="text-align:center"><button onclick="S.modal='auth';S.pin='';render()" style="font-size:12.5px;color:#008AFF;background:none;border:none;cursor:pointer;text-decoration:underline">Ganti metode</button></div>
+          <div style="font-size:10.5px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;text-align:center">Masukkan 6 digit PIN</div>
+          <div style="display:flex;justify-content:center;gap:10px;margin-bottom:14px" onclick="focusPinInput()" style="cursor:text">${dots}</div>
+          <input type="password" id="pin-input" maxlength="6" inputmode="numeric" autocomplete="new-password"
+            autofocus
+            style="position:absolute;opacity:0;width:1px;height:1px;top:-9999px;left:-9999px"
+            oninput="S.pin=this.value.replace(/[^0-9]/g,'').slice(0,6);this.value=S.pin;updatePinDots();if(S.pin.length===6)setTimeout(completeSigning,400)"
+            onkeydown="if(event.key==='Backspace'&&S.pin.length===0)event.preventDefault()">
+          <div style="text-align:center;margin-bottom:8px">
+            <button onclick="focusPinInput()" style="display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 16px;background:#F4F6F8;border:1.5px solid #E5E7EB;border-radius:20px;font-family:inherit;font-size:12.5px;font-weight:500;color:#374151;cursor:pointer"><i class="ti ti-keyboard" style="font-size:13px;color:#6B7280"></i> Ketuk untuk mengetik PIN</button>
+          </div>
+          <div style="text-align:center"><button onclick="S.modal='auth';S.pin='';render()" style="font-size:12px;color:#6B7280;background:none;border:none;cursor:pointer;text-decoration:underline"><i class="ti ti-refresh" style="font-size:11px"></i> Ganti metode</button></div>
         </div>
       </div>
       <div class="mft">
-        <button id="pin-submit-btn" class="btn btn-p" ${pinFilled?'':`disabled style="opacity:.4;cursor:not-allowed"`} onclick="${pinFilled?'completeSigning()':''}"><i class="ti ti-writing"></i> Tanda tangan</button>
+        <button class="btn btn-g" style="flex:1" onclick="S.modal=null;S.pin='';render()">Batal</button>
+        <button id="pin-submit-btn" class="btn btn-p" style="flex:2${pinFilled?'':';opacity:.4;cursor:not-allowed'}" ${pinFilled?'':`disabled`} onclick="${pinFilled?'completeSigning()':''}"><i class="ti ti-writing"></i> Tanda tangan</button>
       </div>
     </div>
   </div>`;
+}
+
+function focusPinInput(){
+  const el=document.getElementById('pin-input');
+  if(el){el.focus();}
 }
 
 function mTnc(){
@@ -1958,24 +2028,37 @@ function mTnc(){
 <p><strong>Hukum yang Berlaku</strong></p>
 <p>Ketentuan Penggunaan ini tunduk pada hukum yang berlaku di Republik Indonesia. Segala sengketa akan diselesaikan melalui Badan Arbitrase Nasional Indonesia (BANI).</p>`;
   return `<div class="mov" onclick="if(event.target===this){S.modal=null;render()}">
-    <div class="mbox">
-      <div class="mhd" style="text-align:center;border-bottom:1px solid #F3F4F6;padding:18px 24px 14px">
-        <div class="mt">Ketentuan Penggunaan Layanan Enterprise Suite</div>
-        <div class="ms" style="color:#9CA3AF;font-size:11.5px;margin-top:2px">Tanggal efektif: 20 Agustus 2024</div>
-      </div>
-      <div class="tnc-body-scroll" id="tnc-scroll" onscroll="checkTncScroll()">${TNC_BODY}</div>
-      <div class="tnc-scroll-hint" id="tnc-hint" style="${S.tncScrolled?'display:none':''}">
-        <i class="ti ti-chevrons-down" style="font-size:12px"></i> Gulir ke bawah untuk melanjutkan
-      </div>
-      <div class="mft" style="justify-content:space-between;align-items:center">
-        <div style="display:flex;gap:3px">
-          <button onclick="setLang('id');render()" style="height:32px;padding:0 12px;border:1px solid ${lang==='id'?'#D1D5DB':'transparent'};border-radius:4px;font-family:inherit;font-size:12px;font-weight:${lang==='id'?'600':'400'};color:${lang==='id'?'#111827':'#6B7280'};background:${lang==='id'?'#fff':'transparent'};cursor:pointer">Indonesia</button>
-          <button onclick="setLang('en');render()" style="height:32px;padding:0 12px;border:1px solid ${lang==='en'?'#D1D5DB':'transparent'};border-radius:4px;font-family:inherit;font-size:12px;font-weight:${lang==='en'?'600':'400'};color:${lang==='en'?'#111827':'#6B7280'};background:${lang==='en'?'#fff':'transparent'};cursor:pointer">English</button>
+    <div class="mbox" style="max-width:520px;padding:0;overflow:hidden;border-radius:16px">
+      <div style="background:linear-gradient(135deg,#0059B3 0%,#008AFF 100%);padding:18px 20px 16px;display:flex;align-items:flex-start;gap:12px;flex-shrink:0">
+        <div style="width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i class="ti ti-file-certificate" style="color:#fff;font-size:20px"></i>
         </div>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-g" style="height:36px;font-size:13px;padding:0 16px" onclick="S.modal=null;render()">${t('tncCancel')}</button>
-          <button class="btn btn-p" style="height:36px;font-size:13px;padding:0 16px;${S.tncScrolled?'':'opacity:.45;cursor:not-allowed'}" id="tnc-accept" onclick="acceptTnc()">${t('tncAccept')}</button>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13.5px;font-weight:700;color:#fff;line-height:1.3">Ketentuan Penggunaan<br>Layanan Enterprise Suite</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.65);margin-top:3px">Tanggal efektif: 20 Agustus 2024 · Versi 1.0</div>
         </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          <div style="display:flex;background:rgba(255,255,255,.12);border-radius:6px;padding:2px;gap:1px">
+            <button onclick="setLang('id');render()" style="height:22px;padding:0 8px;border:none;border-radius:4px;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;background:${lang==='id'?'rgba(255,255,255,.9)':'transparent'};color:${lang==='id'?'#0059B3':'rgba(255,255,255,.75)'}">ID</button>
+            <button onclick="setLang('en');render()" style="height:22px;padding:0 8px;border:none;border-radius:4px;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;background:${lang==='en'?'rgba(255,255,255,.9)':'transparent'};color:${lang==='en'?'#0059B3':'rgba(255,255,255,.75)'}">EN</button>
+          </div>
+          <button onclick="S.modal=null;render()" style="width:28px;height:28px;border:none;background:rgba(255,255,255,.15);border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.8);flex-shrink:0"><i class="ti ti-x" style="font-size:13px"></i></button>
+        </div>
+      </div>
+      ${!S.tncScrolled?`<div style="background:#FFF7ED;border-bottom:1.5px solid #FDE68A;padding:9px 20px;display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <i class="ti ti-scroll" style="color:#D97706;font-size:14px;flex-shrink:0"></i>
+        <span style="font-size:12px;color:#92400E;flex:1">${lang==='id'?'Baca seluruh ketentuan hingga akhir untuk dapat menyetujui':'Read the full terms to the end before you can accept'}</span>
+        <i class="ti ti-chevrons-down" style="color:#D97706;font-size:13px;flex-shrink:0"></i>
+      </div>`:`<div style="background:#F0FDF4;border-bottom:1.5px solid #A7F3D0;padding:9px 20px;display:flex;align-items:center;gap:8px;flex-shrink:0"><i class="ti ti-circle-check" style="color:#059669;font-size:14px;flex-shrink:0"></i><span style="font-size:12px;color:#065F46">${lang==='id'?'Anda telah membaca seluruh ketentuan. Klik tombol Setuju untuk melanjutkan.':'You have read all terms. Click Agree to continue.'}</span></div>`}
+      <div style="position:relative;flex:1">
+        <div class="tnc-body-scroll" id="tnc-scroll" onscroll="checkTncScroll()" style="max-height:300px;padding:20px 24px 16px">${TNC_BODY}</div>
+        ${!S.tncScrolled?`<div style="position:absolute;bottom:0;left:0;right:0;height:52px;background:linear-gradient(transparent,rgba(255,255,255,.95));pointer-events:none"></div>`:''}
+      </div>
+      <div style="padding:14px 20px;border-top:1px solid #F3F4F6;display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-shrink:0;background:#fff">
+        <button class="btn btn-g" style="height:40px;font-size:13px;padding:0 18px" onclick="S.modal=null;render()">${t('tncCancel')}</button>
+        <button class="btn btn-p" style="height:40px;font-size:13px;padding:0 20px;display:flex;align-items:center;gap:6px;${S.tncScrolled?'':'opacity:.4;cursor:not-allowed'}" onclick="acceptTnc()">
+          <i class="ti ti-check" style="font-size:14px"></i>${t('tncAccept')}
+        </button>
       </div>
     </div>
   </div>`;
@@ -2095,21 +2178,24 @@ function uploadDoc(key){S.docs[key]=true;const ek='doc'+key.charAt(0).toUpperCas
 function sendSaveLink(){S.modal=null;goTo('email_sent');}
 
 /* ── Autofill / Reset ── */
-function doAutofill(){
-  S.autofilled=true;S.privyVerified=true;S.privyChecking=false;
+function doAutofill(mode){
+  mode=mode||'ok';
+  S.autofilled=true;S.autofillMode=mode;
+  S.privyVerified=true;S.privyChecking=false;
   S.isDirector=true;S.tncAgreed=true;S.signed=false;
   S.signState='idle';S.signedTs='';
   S.docs={npwp:true,akta:true,sk:true,nib:true,kuasa:null};
   S.npwpOcrState=null;S.npwpOcrFile=null;S.ocrFilled=[];
+  S.npwpCheckState=mode==='reg'?'registered':null;
   ERR={};render();
 }
 function doReset(){
   S={screen:S.screen,modal:null,otpFor:null,pin:'',tncScrolled:false,
-    autofilled:false,nama:'',email:'',hp:'',perus:'',sektor:'',tncAgreed:false,
+    autofilled:false,autofillMode:'ok',nama:'',email:'',hp:'',perus:'',sektor:'',tncAgreed:false,
     privyid:'',privyVerified:false,privyChecking:false,isDirector:true,
     jabatan:'',emailK:'',telK:'',alamat:'',npwp:'',nib:'',
     docs:{npwp:null,akta:null,sk:null,nib:null,kuasa:null},
-    npwpOcrState:null,npwpOcrFile:null,ocrFilled:[],
+    npwpCheckState:null,npwpOcrState:null,npwpOcrFile:null,ocrFilled:[],
     signState:'idle',signedTs:'',signed:false};
   ERR={};render();
 }
@@ -2131,14 +2217,17 @@ function clearInsp(){
 }
 document.getElementById('wb-grip').addEventListener('mousedown',e=>{
   _drag=true;const r=_wb.getBoundingClientRect();
-  _ox=e.clientX-(r.left+r.width/2);_oy=e.clientY-(window.innerHeight-r.bottom);
+  _ox=e.clientX-r.left;
+  _oy=r.bottom-e.clientY;
+  _wb.style.right='auto';
+  _wb.style.left=r.left+'px';
+  _wb.style.bottom=(window.innerHeight-r.bottom)+'px';
   e.currentTarget.style.cursor='grabbing';e.preventDefault();
 });
 document.addEventListener('mousemove',e=>{
   if(!_drag)return;
   _wb.style.left=(e.clientX-_ox)+'px';
   _wb.style.bottom=(window.innerHeight-e.clientY-_oy)+'px';
-  _wb.style.right='auto';_wb.style.transform='none';
 });
 document.addEventListener('mouseup',()=>{_drag=false;const g=document.getElementById('wb-grip');if(g)g.style.cursor='grab';});
 
