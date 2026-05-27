@@ -937,15 +937,15 @@ id:{
   sektor:'Sektor bisnis',sektorPh:'Pilih sektor bisnis',
   website:'Website perusahaan',websitePh:'https://www.perusahaan.com',
   tncT:'Syarat & Ketentuan',tncSub:'Baca dan setujui ketentuan layanan Privy Enterprise.',
-  tncChk:'Saya telah membaca dan menyetujui ',tncLink:'Syarat & Ketentuan',
-  tncAnd:' serta ',tncPriv:'Kebijakan Privasi',tncEnd:' Privy Enterprise.',
+  tncChk:'Saya telah membaca dan menyetujui ',tncLink:'Syarat & Ketentuan Layanan Enterprise Suite',
+  tncAnd:' dan ',tncPriv:'Kebijakan Privasi Privy',tncEnd:'.',
   tncBtn:'Baca Syarat & Ketentuan',tncAccept:'Setuju & Lanjutkan',tncCancel:'Batal',
   docsNeed:'Dokumen yang Dibutuhkan',
   privyidL:'PrivyID pemilik enterprise',privyidPh:'Masukkan PrivyID Anda',
   verifyBtn:'Verifikasi',verified:'Terverifikasi',changePrivy:'Ganti PrivyID',
-  dirQ:'Apakah kamu direktur utama perusahaan?',
-  dirHint:'Jika tidak, kamu perlu melampirkan surat kuasa dari direktur utama.',
-  dirYes:'Ya, saya direktur',dirNo:'Tidak',
+  dirQ:'Apakah penandatangan merupakan Direktur Utama atau pihak yang berwenang mewakili perusahaan?',
+  dirHint:'Jika tidak, lampirkan surat kuasa atau dokumen pendukung dari pihak yang berwenang mewakili perusahaan.',
+  dirYes:'Ya, saya direktur atau pihak berwenang',dirNo:'Tidak',
   kuasaT:'Unggah Surat Kuasa',kuasaS:'Surat kuasa bermaterai dari direktur utama yang memberikan wewenang kepada Anda.',
   nameInfo:'Nama penandatangan terisi otomatis dari PrivyID dan tidak dapat diubah.',
   penSign:'Nama penandatangan',
@@ -956,8 +956,8 @@ id:{
   npwpL:'Nomor NPWP perusahaan',npwpPh:'Masukkan nomor NPWP (15-16 digit)',
   nibL:'Nomor Induk Berusaha (NIB)',nibPh:'Masukkan 13 digit NIB',
   docsT:'Unggah Dokumen',
-  dNPWP:'Dokumen NPWP',dAkta:'Akta pendirian perusahaan',
-  dSK:'SK pengesahan badan usaha',dNIB:'Dokumen NIB',dKuasa:'Surat kuasa',
+  dNPWP:'Dokumen NPWP',dAkta:'Dokumen Pendirian Usaha',
+  dSK:'SK Pengesahan Pendirian Usaha',dNIB:'Dokumen NIB',dKuasa:'Surat kuasa',
   dDesc:'PDF/PNG/JPG · maks. 2 MB',upBtn:'Pilih file',upDone:'Diunggah',
   saveLaterT:'Simpan & Lanjutkan Nanti',saveLaterS:'Link akan dikirim ke email Anda',
   saveLaterModal:'Simpan & Lanjutkan Nanti',
@@ -1012,15 +1012,15 @@ en:{
   sektor:'Business sector',sektorPh:'Select business sector',
   website:'Company website',websitePh:'https://www.company.com',
   tncT:'Terms & Conditions',tncSub:'Read and agree to the Privy Enterprise service terms.',
-  tncChk:'I have read and agree to the ',tncLink:'Terms & Conditions',
-  tncAnd:' and ',tncPriv:'Privacy Policy',tncEnd:' of Privy Enterprise.',
+  tncChk:'I have read and agree to the ',tncLink:'Enterprise Suite Terms of Service',
+  tncAnd:' and ',tncPriv:'Privy Privacy Policy',tncEnd:'.',
   tncBtn:'Read Terms & Conditions',tncAccept:'Agree & Continue',tncCancel:'Cancel',
   docsNeed:'Required Documents',
   privyidL:'Enterprise owner PrivyID',privyidPh:'Enter your PrivyID',
   verifyBtn:'Verify',verified:'Verified',changePrivy:'Change PrivyID',
-  dirQ:'Are you the company\'s main director?',
-  dirHint:'If not, you need to attach a power of attorney from the main director.',
-  dirYes:'Yes, I am director',dirNo:'No',
+  dirQ:'Is the signatory the President Director or an authorized representative of the company?',
+  dirHint:'If not, please attach a power of attorney or supporting document from the authorized representative of the company.',
+  dirYes:'Yes, I am director or authorized party',dirNo:'No',
   kuasaT:'Upload Power of Attorney',kuasaS:'A stamped power of attorney from the main director authorizing you.',
   nameInfo:'Signatory name is auto-filled from your PrivyID and cannot be changed.',
   penSign:'Signatory name',
@@ -1031,8 +1031,8 @@ en:{
   npwpL:'Company NPWP number',npwpPh:'Enter NPWP number (15-16 digits)',
   nibL:'Business Registration Number (NIB)',nibPh:'Enter 13-digit NIB',
   docsT:'Upload Documents',
-  dNPWP:'NPWP Document',dAkta:'Company deed of establishment',
-  dSK:'Ministry ratification decree (SK)',dNIB:'NIB Document',dKuasa:'Power of attorney',
+  dNPWP:'NPWP Document',dAkta:'Business Establishment Document',
+  dSK:'Business Establishment Ratification Decree',dNIB:'NIB Document',dKuasa:'Power of attorney',
   dDesc:'PDF/PNG/JPG · max 2 MB',upBtn:'Choose file',upDone:'Uploaded',
   saveLaterT:'Save & Continue Later',saveLaterS:'A link will be sent to your email',
   saveLaterModal:'Save & Continue Later',
@@ -1290,7 +1290,7 @@ function renderStep1(){
         <div class="tnc-txt">${t('tncChk')}<span class="tnc-link" onclick="event.stopPropagation();openTnc()">${t('tncLink')}</span>${t('tncAnd')}<span class="tnc-link" onclick="event.stopPropagation();openTnc()">${t('tncPriv')}</span>${t('tncEnd')}</div>
       </div>
       ${ERR.tnc?`<div class="ferr mt2"><i class="ti ti-alert-circle"></i>${ERR.tnc}</div>`:''}
-      <p style="font-size:12px;color:#6B7280;margin-top:10px;line-height:1.55">${lang==='id'?'Dengan mendaftar, kamu menyetujui penggunaan tanda tangan elektronik sesuai UU ITE dan regulasi PSrE yang berlaku.':'By registering, you agree to the use of electronic signatures in accordance with the applicable ITE Law and PSrE regulations.'}</p>
+      <p style="font-size:12px;color:#6B7280;margin-top:10px;line-height:1.55">${lang==='id'?'Dengan mendaftar, dokumen perjanjian layanan Enterprise akan dikirimkan kepada pihak yang didaftarkan sebagai penandatangan untuk proses persetujuan dan penandatanganan elektronik sesuai ketentuan layanan yang berlaku.':'By registering, the Enterprise service agreement document will be sent to the registered signatory for the approval and electronic signing process in accordance with the applicable service terms.'}</p>
     </div>
   </div>
   <button class="btn btn-p full" onclick="validateAndNext('step1')" style="margin-bottom:20px">
@@ -1369,17 +1369,19 @@ function renderStep2(){
       <div class="ch-t" style="flex:1">${t('docsNeed')}</div>
       <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#6B7280;border:1px solid #E5E7EB;border-radius:20px;padding:2px 10px;white-space:nowrap"><i class="ti ti-clock" style="font-size:11px"></i> ~10–15 mnt</span>
     </div>
+    <div style="padding:12px 20px 0;font-size:12px;color:#6B7280;line-height:1.6">${lang==='id'?'Untuk memastikan akun Enterprise Anda terdaftar dengan aman dan digunakan oleh pihak yang berwenang, kami memerlukan beberapa dokumen dan informasi perusahaan sebagai bagian dari proses verifikasi dan keamanan sesuai standar layanan Enterprise Privy.':'To ensure your Enterprise account is securely registered and used by authorized parties, we require several company documents and information as part of the verification and security process in accordance with Privy Enterprise service standards.'}</div>
     <div class="cb">
-      <div class="dci ok-bg"><div class="dci-circle ok"><i class="ti ti-check"></i></div><div><div class="dci-t">Akun Privy (PrivyID)</div><div class="dci-s">Diperlukan untuk menandatangani perjanjian layanan dan menjadi pemilik enterprise.<br><span style="color:#008AFF;font-size:11px">Belum punya? <a href="https://privy.id" target="_blank">Daftar di sini</a></span></div></div></div>
-      <div class="dci ok-bg"><div class="dci-circle ok"><i class="ti ti-check"></i></div><div><div class="dci-t">NPWP perusahaan</div><div class="dci-s">File asli NPWP perusahaan (PDF/PNG/JPG) — bisa diisi otomatis via OCR</div></div></div>
-      <div class="dci ok-bg"><div class="dci-circle ok"><i class="ti ti-check"></i></div><div><div class="dci-t">Akta pendirian perusahaan</div><div class="dci-s">File akta asli atau salinan yang dilegalisir</div></div></div>
-      <div class="dci ok-bg"><div class="dci-circle ok"><i class="ti ti-check"></i></div><div><div class="dci-t">SK pengesahan badan usaha</div><div class="dci-s">Surat keputusan pengesahan dari Kemenkumham</div></div></div>
-      <div class="dci ok-bg"><div class="dci-circle ok"><i class="ti ti-check"></i></div><div><div class="dci-t">NIB (Nomor Induk Berusaha)</div><div class="dci-s">Nomor dan file dokumen NIB perusahaan dari OSS</div></div></div>
-      <div class="dci warn-bg"><div class="dci-circle warn"><i class="ti ti-alert-triangle" style="font-size:10px"></i></div><div><div class="dci-t" style="color:#92400E">Surat kuasa <span style="font-weight:400;color:#B45309">(jika diperlukan)</span></div><div class="dci-s" style="color:#B45309">Diperlukan jika pemilik Enterprise tidak tercantum sebagai pejabat berwenang dalam akta pendirian.</div></div></div>
+      <div class="dci ok-bg"><div class="dci-circle ok"><i class="ti ti-check"></i></div><div><div class="dci-t">Akun Privy (PrivyID)</div><div class="dci-s">${lang==='id'?'Diperlukan untuk registrasi, verifikasi, dan penandatanganan perjanjian layanan atas nama Enterprise.':'Required for registration, verification, and signing of the service agreement on behalf of the Enterprise.'}<br><span style="color:#008AFF;font-size:11px">${lang==='id'?'Belum punya PrivyID?':'Don\'t have a PrivyID?'} <a href="https://privy.id" target="_blank">${lang==='id'?'Daftar di sini':'Register here'}</a></span></div></div></div>
+      <div class="dci ok-bg"><div class="dci-circle ok"><i class="ti ti-check"></i></div><div><div class="dci-t">NPWP perusahaan</div><div class="dci-s">${lang==='id'?'Dokumen asli NPWP perusahaan yang masih berlaku.':'Original and valid company NPWP document.'} <span style="color:#6B7280">(PDF/PNG/JPG)</span></div></div></div>
+      <div class="dci ok-bg"><div class="dci-circle ok"><i class="ti ti-check"></i></div><div><div class="dci-t">${lang==='id'?'Dokumen Pendirian Usaha':'Business Establishment Document'}</div><div class="dci-s">${lang==='id'?'File asli atau salinan digital dokumen pendirian dan/atau perubahan terakhir perusahaan atau dokumen setara sesuai bentuk usaha yang berlaku.':'Original or digital copy of the company\'s establishment and/or latest amendment document, or equivalent document according to the applicable business form.'}</div></div></div>
+      <div class="dci ok-bg"><div class="dci-circle ok"><i class="ti ti-check"></i></div><div><div class="dci-t">${lang==='id'?'SK Pengesahan Pendirian Usaha':'Business Establishment Ratification Decree'}</div><div class="dci-s">${lang==='id'?'File asli atau salinan digital surat keputusan pengesahan pendirian dan/atau perubahan usaha dari Kementerian Hukum dan HAM.':'Original or digital copy of the decree ratifying the establishment and/or amendment of the business from the Ministry of Law and Human Rights.'}</div></div></div>
+      <div class="dci ok-bg"><div class="dci-circle ok"><i class="ti ti-check"></i></div><div><div class="dci-t">NIB (Nomor Induk Berusaha)</div><div class="dci-s">${lang==='id'?'Nomor dan dokumen asli dokumen NIB yang diterbitkan melalui OSS RBA.':'Number and original NIB document issued through OSS RBA.'}</div></div></div>
+      <div class="dci warn-bg"><div class="dci-circle warn"><i class="ti ti-alert-triangle" style="font-size:10px"></i></div><div><div class="dci-t" style="color:#92400E">${lang==='id'?'Surat kuasa':'Power of Attorney'} <span style="font-weight:400;color:#B45309">${lang==='id'?'(jika diperlukan)':'(if required)'}</span></div><div class="dci-s" style="color:#B45309">${lang==='id'?'Diperlukan jika pihak yang melakukan registrasi bertindak berdasarkan kuasa atau tidak tercantum sebagai pihak yang berwenang dalam dokumen legal perusahaan.':'Required if the registering party acts under a power of attorney or is not listed as an authorized party in the company\'s legal documents.'}</div></div></div>
     </div>
   </div>
   <div class="card">
     <div class="ch"><div class="ch-t" style="flex:1">${t('s2t')}</div>${isDataComplete()?completeBadge():`<span class="bdr bdr-red">Wajib</span>`}</div>
+    <div style="padding:10px 20px 0;font-size:12px;color:#6B7280">${lang==='id'?'Informasi legal perusahaan':'Company legal information'}</div>
     <div class="cb">
       ${privySec}
       ${S.privyVerified?renderNpwpOcr():''}
