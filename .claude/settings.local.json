@@ -5,7 +5,11 @@
       "WebFetch(domain:privy-open-source.github.io)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:api.github.com)",
-      "Bash(open /Users/PID-PRODUCT-WM0905/prototype-registrasi-v2/index.html)"
+      "Bash(open /Users/PID-PRODUCT-WM0905/prototype-registrasi-v2/index.html)",
+      "Bash(grep -oP \"Diperlukan untuk menandatangani.{0,120}\" /Users/PID-PRODUCT-WM0905/prototype-registrasi-v2/index.html)",
+      "Bash(grep -oP \"Apakah kamu direktur.{0,60}\" /Users/PID-PRODUCT-WM0905/prototype-registrasi-v2/index.html)",
+      "Bash(grep -oP \"direktur utama.{0,80}\" /Users/PID-PRODUCT-WM0905/prototype-registrasi-v2/index.html)",
+      "Bash(python3 -)"
     ]
   }
 }
