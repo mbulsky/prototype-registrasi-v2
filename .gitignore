@@ -1,0 +1,4 @@
+# Claude / AI agent local config — never push
+CLAUDE.md
+.agents/
+.claude/
