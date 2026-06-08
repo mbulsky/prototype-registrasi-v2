@@ -4,3 +4,4 @@ CLAUDE.md
 .claude/
 ~$*.docx
 settings.local.json
+*.docx
