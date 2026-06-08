@@ -2,3 +2,5 @@
 CLAUDE.md
 .agents/
 .claude/
+~$*.docx
+settings.local.json
